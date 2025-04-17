@@ -1,111 +1,149 @@
+<!-- student_dashboard.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Student Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 40px;
-            background-color: #f9f9f9;
-        }
-
-        .container {
-            max-width: 600px;
-            margin: auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        h2 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        p {
-            margin: 6px 0;
-        }
-
-        canvas {
-            margin-top: 20px;
-        }
-
-        a.button {
-            display: inline-block;
-            margin-top: 20px;
-            text-decoration: none;
-            color: white;
-            background-color: #007bff;
-            padding: 10px 16px;
-            border-radius: 5px;
-        }
-
-        a.button.logout {
-            background-color: #dc3545;
-            margin-left: 10px;
-        }
-
-        .action-buttons {
-            margin-top: 30px;
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 </head>
-<body>
+<body class="bg-white text-dark">
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Welcome, {{ user.name }}</h2>
+        <div>
+            <a href="/home" class="btn btn-success me-2">Go to Prediction</a>
+            <a href="/logout" class="btn btn-danger">Logout</a>
+        </div>
+    </div>
 
-<div class="container">
-    <h2>Welcome, {{ user.name }}</h2>
     <p><strong>Email:</strong> {{ user.email }}</p>
     <p><strong>Gender:</strong> {{ user.gender }}</p>
 
-    <canvas id="performanceChart" width="400" height="400"></canvas>
+    {% if history %}
+        {% set latest = history[-1] %}
+        <div class="card bg-light p-3 mb-4">
+            <h4>Latest Prediction Summary</h4>
+            <p><strong>Math (Predicted):</strong> {{ latest.predicted_math_score }}</p>
+            <p><strong>Reading:</strong> {{ latest.reading_score }}</p>
+            <p><strong>Writing:</strong> {{ latest.writing_score }}</p>
+            <p><strong>Physics:</strong> {{ latest.physics_score }}</p>
+            <p><strong>Chemistry:</strong> {{ latest.chemistry_score }}</p>
+            <p><strong>Computer Science:</strong> {{ latest.cs_score }}</p>
+            <p><strong>Average:</strong> {{ latest.average }}</p>
+            <p><strong>Percentage:</strong> {{ latest.percentage }}%</p>
+            <p><strong>Status:</strong> {{ latest.pass_status }}</p>
+        </div>
 
-    <div class="action-buttons">
-        <a class="button" href=".{{url_for('home')      }}">Go to Prediction Page</a>
-        <a class="button logout" href="{{ url_for('logout') }}">Logout</a>
-    </div>
-</div>
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <canvas id="pieChart" height="250"></canvas>
+            </div>
+            <div class="col-md-6">
+                <canvas id="barChart" height="250"></canvas>
+            </div>
+        </div>
 
-<script>
-    // Safely load performance data as JSON
-    const performanceData = JSON.parse('{{ performance | default({}) | tojson | safe }}');
+        <form action="/download_report" method="post">
+            <input type="hidden" name="uid" value="{{ user.uid }}">
+            <button type="submit" class="btn btn-primary mb-4">Download PDF Report</button>
+        </form>
+        
 
+        <h4 class="mt-5">Performance History</h4>
+        <table class="table table-bordered table-striped">
+            <thead class="table-light">
+            <tr>
+                <th>#</th>
+                <th>Math</th>
+                <th>Reading</th>
+                <th>Writing</th>
+                <th>Physics</th>
+                <th>Chemistry</th>
+                <th>CS</th>
+                <th>Average</th>
+                <th>Percentage</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for mark in history %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ mark.predicted_math_score }}</td>
+                    <td>{{ mark.reading_score }}</td>
+                    <td>{{ mark.writing_score }}</td>
+                    <td>{{ mark.physics_score }}</td>
+                    <td>{{ mark.chemistry_score }}</td>
+                    <td>{{ mark.cs_score }}</td>
+                    <td>{{ mark.average }}</td>
+                    <td>{{ mark.percentage }}%</td>
+                    <td>{{ mark.pass_status }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
 
-    const ctx = document.getElementById('performanceChart').getContext('2d');
-    const chart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: ['Math', 'Reading', 'Writing'],
-            datasets: [{
-                label: 'Performance',
-                data: [
-                    performanceData.Math || 0,
-                    performanceData.Reading || 0,
-                    performanceData.Writing || 0
-                ],
-                backgroundColor: [
-                    'rgba(255, 99, 132, 0.6)',
-                    'rgba(54, 162, 235, 0.6)',
-                    'rgba(255, 206, 86, 0.6)'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom'
+        <script>
+            const latestData = JSON.parse('{{ latest | tojson | safe }}');
+
+            const pieCtx = document.getElementById('pieChart');
+            new Chart(pieCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Math', 'Reading', 'Writing', 'Physics', 'Chemistry', 'CS'],
+                    datasets: [{
+                        label: 'Subject Scores',
+                        data: [
+                            latestData.predicted_math_score,
+                            latestData.reading_score,
+                            latestData.writing_score,
+                            latestData.physics_score,
+                            latestData.chemistry_score,
+                            latestData.cs_score
+                        ],
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+                        ]
+                    }]
                 },
-                title: {
-                    display: true,
-                    text: 'Your Subject-wise Performance'
+                options: {
+                    responsive: true
                 }
-            }
-        }
-    });
-</script>
+            });
 
+            const barCtx = document.getElementById('barChart');
+            new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Math', 'Reading', 'Writing', 'Physics', 'Chemistry', 'CS'],
+                    datasets: [{
+                        label: 'Latest Scores',
+                        data: [
+                            latestData.predicted_math_score,
+                            latestData.reading_score,
+                            latestData.writing_score,
+                            latestData.physics_score,
+                            latestData.chemistry_score,
+                            latestData.cs_score
+                        ],
+                        backgroundColor: '#36A2EB'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        </script>
+    {% else %}
+        <p>No prediction history available yet.</p>
+    {% endif %}
+</div>
 </body>
 </html>

@@ -18,6 +18,9 @@ from flask import request
 from config import JWT_SECRET, JWT_ALGORITHM
 from dotenv import load_dotenv
 from functools import wraps
+import matplotlib.pyplot as plt
+import io
+import base64
 
 
 
@@ -149,3 +152,35 @@ def login_required(role=None):
             return f(*args, **kwargs)
         return wrapper
     return decorator
+
+
+
+
+def generate_chart(reading, writing, predicted):
+    # Data for chart
+    labels = ['Reading', 'Writing', 'Predicted Math']
+    scores = [reading, writing, predicted]
+
+    # Create the plot
+    fig, ax = plt.subplots(figsize=(6, 4))
+    bars = ax.bar(labels, scores, color=['skyblue', 'lightgreen', 'salmon'])
+    ax.set_ylim(0, 100)
+    ax.set_ylabel('Score')
+    ax.set_title('Performance Breakdown')
+
+    # Annotate bars with score values
+    for bar, score in zip(bars, scores):
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2.0, height + 1, f'{score}', ha='center', va='bottom')
+
+    # Save to BytesIO buffer
+    buf = io.BytesIO()
+    plt.tight_layout()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+
+    # Encode to base64
+    image_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close(fig)
+
+    return image_base64

@@ -45,6 +45,18 @@
             background-color: #fce4e4;
             border-left: 5px solid #e74c3c;
         }
+        .dashboard-btn {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .dashboard-btn a {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -114,19 +126,43 @@
                 <input type="number" name="writing_score" min="0" max="100" required>
             </div>
 
+            <!-- Additional subjects -->
+            <div class="form-group">
+                <label>Physics Score (0-100)</label>
+                <input type="number" name="physics_score" min="0" max="100">
+            </div>
+            <div class="form-group">
+                <label>Chemistry Score (0-100)</label>
+                <input type="number" name="chemistry_score" min="0" max="100">
+            </div>
+            <div class="form-group">
+                <label>Computer Science Score (0-100)</label>
+                <input type="number" name="cs_score" min="0" max="100">
+            </div>
+
             <input type="submit" value="Predict Math Score">
         </form>
 
         {% if results is not none and reading_score is not none and writing_score is not none %}
-            {% set average = (results + reading_score + writing_score) / 3 %}
+            {% set scores = [results, reading_score, writing_score] %}
+            {% if physics_score is not none %}{% set _ = scores.append(physics_score) %}{% endif %}
+            {% if chemistry_score is not none %}{% set _ = scores.append(chemistry_score) %}{% endif %}
+            {% if cs_score is not none %}{% set _ = scores.append(cs_score) %}{% endif %}
+
+            {% set average = (scores | sum) / (scores | length) %}
+            {% set percentage = ((scores | sum) / (scores | length * 100)) * 100 %}
+
             <div class="result {% if average < 45 %}fail{% endif %}">
                 <h2>Results</h2>
                 <p><strong>Predicted Math Score:</strong> {{ results }}</p>
                 <p><strong>Reading Score:</strong> {{ reading_score }}</p>
                 <p><strong>Writing Score:</strong> {{ writing_score }}</p>
+                <p><strong>Physics Score:</strong> {{ physics_score if physics_score is not none else "N/A" }}</p>
+                <p><strong>Chemistry Score:</strong> {{ chemistry_score if chemistry_score is not none else "N/A" }}</p>
+                <p><strong>Computer Science Score:</strong> {{ cs_score if cs_score is not none else "N/A" }}</p>
                 <p><strong>Average Score:</strong> {{ average | round(2) }}</p>
-                <p><strong>Percentage:</strong> {{ average | round(2) }}%</p>
-                <p><strong>Status:</strong> 
+                <p><strong>Percentage:</strong> {{ percentage | round(2) }}%</p>
+                <p><strong>Status:</strong>
                     {% if average >= 45 %}
                         Pass ✅
                     {% else %}
@@ -160,7 +196,10 @@
                 </p>
             </div>
         {% endif %}
+
+        <div class="dashboard-btn">
+            <a href="{{ url_for('student_dashboard') }}">Go to Dashboard</a>
+        </div>
     </div>
 </body>
 </html>
-
