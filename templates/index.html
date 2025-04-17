@@ -1,1 +1,75 @@
-<h1>hi all welcom back</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Performance Predictor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Hero Section -->
+    <section class="bg-blue-600 text-white py-20">
+        <div class="max-w-6xl mx-auto text-center px-4">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Predict Student Performance with AI</h1>
+            <p class="text-lg md:text-xl mb-6">Empowering educators and students with predictive insights for better learning outcomes.</p>
+            <a href="#roles" class="bg-white text-blue-600 px-6 py-2 rounded-full font-semibold hover:bg-gray-200 transition">Get Started</a>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold mb-8">Why Use This App?</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="p-6 bg-gray-100 rounded-xl shadow">
+                    <h3 class="text-xl font-semibold mb-2">Smart Prediction</h3>
+                    <p>Leverages machine learning to estimate future performance based on input scores.</p>
+                </div>
+                <div class="p-6 bg-gray-100 rounded-xl shadow">
+                    <h3 class="text-xl font-semibold mb-2">Student Dashboard</h3>
+                    <p>Each student gets a personal dashboard to track and visualize their performance.</p>
+                </div>
+                <div class="p-6 bg-gray-100 rounded-xl shadow">
+                    <h3 class="text-xl font-semibold mb-2">Tutor Insights</h3>
+                    <p>Tutors can view all student data, perform batch predictions, and get class-wide analytics.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Register/Login Section -->
+    <section id="roles" class="bg-blue-50 py-16">
+        <div class="max-w-6xl mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-10">Choose Your Role</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                <!-- Student Card -->
+                <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                    <h3 class="text-2xl font-semibold mb-4">Student</h3>
+                    <p class="mb-6">Register or log in to access personalized performance dashboards and predictions.</p>
+                    <div class="flex justify-center gap-4">
+                        <a href="/register?role=student" class="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700">Register</a>
+                        <a href="/login?role=student" class="bg-gray-200 text-blue-600 px-5 py-2 rounded hover:bg-gray-300">Login</a>
+                    </div>
+                </div>
+
+                <!-- Tutor Card -->
+                <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                    <h3 class="text-2xl font-semibold mb-4">Tutor</h3>
+                    <p class="mb-6">Log in to monitor student progress, perform predictions, and access analytics.</p>
+                    <div class="flex justify-center gap-4">
+                        <a href="/register?role=tutor" class="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700">Register</a>
+                        <a href="/login?role=tutor" class="bg-gray-200 text-blue-600 px-5 py-2 rounded hover:bg-gray-300">Login</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 py-6 mt-12 text-center text-sm text-gray-500">
+        © 2025 Student Performance Predictor. Built with ❤️ using Flask and ML.
+    </footer>
+
+</body>
+</html>

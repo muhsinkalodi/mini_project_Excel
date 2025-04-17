@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background-color: #f9f9f9;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        p {
+            margin: 6px 0;
+        }
+
+        canvas {
+            margin-top: 20px;
+        }
+
+        a.button {
+            display: inline-block;
+            margin-top: 20px;
+            text-decoration: none;
+            color: white;
+            background-color: #007bff;
+            padding: 10px 16px;
+            border-radius: 5px;
+        }
+
+        a.button.logout {
+            background-color: #dc3545;
+            margin-left: 10px;
+        }
+
+        .action-buttons {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Welcome, {{ user.name }}</h2>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Gender:</strong> {{ user.gender }}</p>
+
+    <canvas id="performanceChart" width="400" height="400"></canvas>
+
+    <div class="action-buttons">
+        <a class="button" href=".{{url_for('home')      }}">Go to Prediction Page</a>
+        <a class="button logout" href="{{ url_for('logout') }}">Logout</a>
+    </div>
+</div>
+
+<script>
+    // Safely load performance data as JSON
+    const performanceData = JSON.parse('{{ performance | default({}) | tojson | safe }}');
+
+
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Math', 'Reading', 'Writing'],
+            datasets: [{
+                label: 'Performance',
+                data: [
+                    performanceData.Math || 0,
+                    performanceData.Reading || 0,
+                    performanceData.Writing || 0
+                ],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.6)',
+                    'rgba(54, 162, 235, 0.6)',
+                    'rgba(255, 206, 86, 0.6)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: 'Your Subject-wise Performance'
+                }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

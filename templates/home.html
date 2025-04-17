@@ -1,111 +1,166 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Exam Performance Predictor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+            background-color: #f0f2f5;
+        }
+        .container {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 10px;
+            max-width: 600px;
+            margin: auto;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+        }
+        select, input[type=number], input[type=submit] {
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 0.25rem;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .result {
+            margin-top: 2rem;
+            padding: 1rem;
+            border-radius: 8px;
+            background-color: #e9f7ef;
+            border-left: 5px solid #28a745;
+        }
+        .fail {
+            background-color: #fce4e4;
+            border-left: 5px solid #e74c3c;
+        }
+    </style>
+</head>
 <body>
-    <div class="login">
-       <h1>Student Exam Performance Indicator</h1>
-   
-       <form action="{{ url_for('predict_datappoint')}}" method="post">
-        <h1>
-            <legend>Student Exam Performance Prediction</legend>
-        </h1>
-        <div class="mb-3">
-            <label class="form-label">Gender</label>
-            <select class="form-control" name="gender" placeholder="Enter you Gender" required>
-                <option class="placeholder" selected disabled value="">Select your Gender</option>
-                <option value="male">
-                    Male
-                </option>
-                <option value="female">
-                    Female
-                </option>
-            </select>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Race or Ethnicity</label>
-            <select class="form-control" name="ethnicity" placeholder="Enter you ethnicity" required>
-                <option class="placeholder" selected disabled value="">Select Ethnicity</option>
-                <option value="group A">
-                    Group A
-                </option>
-                <option value="group B">
-                    Group B
-                </option>
-                <option value="group C">
-                    Group C
-                </option>
-                <option value="group D">
-                    Group D
-                </option>
-                <option value="group E">
-                    Group E
-                </option>
-            </select>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Parental Level of Education</label>
-            <select class="form-control" name="parental_level_of_education"
-                placeholder="Enter you Parent Education" required>
-                <option class="placeholder" selected disabled value="">Select Parent Education</option>
-                <option value="associate's degree">
-                    associate's degree
-                </option>
-                <option value="bachelor's degree">
-                    bachelor's degree
-                </option>
-                <option value="high school">
-                    high school
-                </option>
-                <option value="master's degree">
-                    master's degree
-                </option>
-                <option value="some college">
-                    some college
-                </option>
-                <option value="some high school">
-                    some high school
-                </option>
-            </select>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Lunch Type</label>
-            <select class="form-control" name="lunch" placeholder="Enter you Lunch" required>
-                <option class="placeholder" selected disabled value="">Select Lunch Type</option>
-                <option value="free/reduced">
-                    free/reduced
-                </option>
-                <option value="standard">
-                    standard
-                </option>
-            </select>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Test preparation Course</label>
-            <select class="form-control" name="test_preparation_course" placeholder="Enter you Course"
-                required>
-                <option class="placeholder" selected disabled value="">Select Test_course</option>
-                <option value="none">
-                    None
-                </option>
-                <option value="completed">
-                    Completed
-                </option>
-            </select>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Writing Score out of 100</label>
-            <input class="form-control" type="number" name="reading_score"
-                placeholder="Enter your Reading score" min='0' max='100' />
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Reading Score out of 100</label>
-            <input class="form-control" type="number" name="writing_score"
-                placeholder="Enter your Reading Score" min='0' max='100' />
-        </div>
-        <div class="mb-3">
-            <input class="btn btn-primary" type="submit" value="Predict your Maths Score" required />
-        </div>
-    </form>
-    <h2>
-       THE  prediction is {{results}}
-    </h2>
-   <body>
+    <div class="container">
+        <h1>Student Exam Performance Predictor</h1>
+
+        <form action="{{ url_for('predict_datappoint') }}" method="POST">
+            <div class="form-group">
+                <label>Gender</label>
+                <select name="gender" required>
+                    <option value="" disabled selected>Select your Gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Race or Ethnicity</label>
+                <select name="ethnicity" required>
+                    <option value="" disabled selected>Select Ethnicity</option>
+                    <option value="group A">Group A</option>
+                    <option value="group B">Group B</option>
+                    <option value="group C">Group C</option>
+                    <option value="group D">Group D</option>
+                    <option value="group E">Group E</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Parental Level of Education</label>
+                <select name="parental_level_of_education" required>
+                    <option value="" disabled selected>Select Parent Education</option>
+                    <option value="associate's degree">Associate's Degree</option>
+                    <option value="bachelor's degree">Bachelor's Degree</option>
+                    <option value="high school">High School</option>
+                    <option value="master's degree">Master's Degree</option>
+                    <option value="some college">Some College</option>
+                    <option value="some high school">Some High School</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Lunch Type</label>
+                <select name="lunch" required>
+                    <option value="" disabled selected>Select Lunch Type</option>
+                    <option value="free/reduced">Free/Reduced</option>
+                    <option value="standard">Standard</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Test Preparation Course</label>
+                <select name="test_preparation_course" required>
+                    <option value="" disabled selected>Select Course</option>
+                    <option value="none">None</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Reading Score (0-100)</label>
+                <input type="number" name="reading_score" min="0" max="100" required>
+            </div>
+
+            <div class="form-group">
+                <label>Writing Score (0-100)</label>
+                <input type="number" name="writing_score" min="0" max="100" required>
+            </div>
+
+            <input type="submit" value="Predict Math Score">
+        </form>
+
+        {% if results is not none and reading_score is not none and writing_score is not none %}
+            {% set average = (results + reading_score + writing_score) / 3 %}
+            <div class="result {% if average < 45 %}fail{% endif %}">
+                <h2>Results</h2>
+                <p><strong>Predicted Math Score:</strong> {{ results }}</p>
+                <p><strong>Reading Score:</strong> {{ reading_score }}</p>
+                <p><strong>Writing Score:</strong> {{ writing_score }}</p>
+                <p><strong>Average Score:</strong> {{ average | round(2) }}</p>
+                <p><strong>Percentage:</strong> {{ average | round(2) }}%</p>
+                <p><strong>Status:</strong> 
+                    {% if average >= 45 %}
+                        Pass ✅
+                    {% else %}
+                        Fail ❌
+                    {% endif %}
+                </p>
+                <p><strong>Recommendation:</strong>
+                    {% if average <= 10 %}
+                        Focus on the basics. Start with foundational concepts and practice daily.
+                    {% elif average <= 20 %}
+                        Consider extra tutoring and consistent revision.
+                    {% elif average <= 30 %}
+                        You’re improving! Keep practicing mock tests.
+                    {% elif average <= 40 %}
+                        Target weak areas and solve past questions.
+                    {% elif average <= 50 %}
+                        Almost there! Brush up concepts and do revision drills.
+                    {% elif average <= 60 %}
+                        Good work. Keep solving practice sets to level up.
+                    {% elif average <= 70 %}
+                        Very good! Keep maintaining this momentum.
+                    {% elif average <= 80 %}
+                        Excellent! You’re among the top performers.
+                    {% elif average <= 90 %}
+                        Brilliant performance! Just polish for perfection.
+                    {% elif average <= 96 %}
+                        Outstanding! Keep up the high-level performance!
+                    {% else %}
+                        🔥 Perfect! You’ve mastered the subject!
+                    {% endif %}
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</body>
 </html>
+

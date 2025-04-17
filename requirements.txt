@@ -6,5 +6,8 @@ scikit-learn
 catboost
 xgboost
 dill
-
+flask
+firebase-admin
+pymongo
+dnspython
 # -e .
