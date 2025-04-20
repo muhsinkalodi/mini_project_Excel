@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tutor Registration</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to right, #ffecd2, #fcb69f);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .register-container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 6px;
+            color: #444;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            margin-bottom: 18px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #ff7043;
+            outline: none;
+        }
+
+        button[type="submit"] {
+            background-color: #ff7043;
+            color: white;
+            padding: 12px;
+            width: 100%;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #f4511e;
+        }
+
+        ul {
+            margin: 0 0 15px;
+            padding: 10px;
+            background-color: #ffe9e9;
+            border-left: 5px solid #e53935;
+            border-radius: 5px;
+            list-style: none;
+            color: #d32f2f;
+            font-size: 14px;
+        }
+
+        ul li {
+            margin: 5px 0;
+        }
+
+        p {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 15px;
+            color: #555;
+        }
+
+        a {
+            color: #1976d2;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <h2>Tutor Registration</h2>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul>
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        <form method="POST" action="{{ url_for('tutor_register') }}">
+            <label for="name">Name:</label>
+            <input type="text" name="name" id="name" required>
+
+            <label for="email">Email:</label>
+            <input type="email" name="email" id="email" required>
+
+            <label for="password">Password:</label>
+            <input type="password" name="password" id="password" required>
+
+            <label for="gender">Gender:</label>
+            <select name="gender" id="gender" required>
+                <option value="" disabled selected>Select gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+            </select>
+
+            <label for="invite_code">Invite Code:</label>
+            <input type="text" name="invite_code" id="invite_code" required>
+
+            <button type="submit">Register as Tutor</button>
+        </form>
+        <p>Already have an account? <a href="{{ url_for('tutor_login') }}">Login here</a></p>
+    </div>
+</body>
+</html>

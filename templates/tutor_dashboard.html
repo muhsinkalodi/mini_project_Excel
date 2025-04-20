@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tutor Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script> <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern font */
+            background-color: #f8f9fa; /* Lighter grey */
+            margin: 0;
+            padding: 20px; /* Add padding around the body */
+            color: #343a40; /* Default text color */
+        }
+
+        h2 {
+            text-align: center;
+            color: #495057; /* Slightly darker heading */
+            margin-top: 20px;
+            margin-bottom: 10px; /* Space below heading */
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 30px; /* More padding */
+            background-color: #fff;
+            border-radius: 10px; /* Smoother radius */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: space-between; /* Space out buttons */
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+        }
+
+        /* Style for the new button */
+        .action-button a, .logout-button a {
+            padding: 10px 20px; /* Consistent padding */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.95rem; /* Slightly smaller font */
+            text-decoration: none;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            display: inline-block; /* Ensure proper spacing */
+            text-align: center;
+            margin: 5px; /* Add margin for spacing when wrapped */
+        }
+
+        .action-button a {
+             background-color: #007bff; /* Primary blue */
+        }
+         .action-button a:hover {
+             background-color: #0056b3; /* Darker blue */
+             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+         }
+
+        .logout-button a {
+             background-color: #dc3545; /* Red for logout */
+        }
+        .logout-button a:hover {
+             background-color: #c82333; /* Darker red */
+             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+
+        .summary-cards {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around; /* Even spacing */
+            gap: 20px; /* Gap between cards */
+            margin-bottom: 30px; /* More space below cards */
+        }
+
+        .card {
+            background-color: #eef1f5; /* Lighter card background */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            flex: 1 1 200px; /* Flex grow, shrink, basis */
+            min-width: 180px; /* Minimum width */
+            text-align: center;
+            border: 1px solid #dee2e6; /* Light border */
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card:hover {
+            transform: translateY(-3px); /* Slight lift on hover */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .card h3 {
+            color: #007bff; /* Blue heading */
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        .card p {
+            font-size: 1.5rem; /* Larger number */
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0;
+        }
+
+        .charts-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px; /* Gap between charts */
+            margin-bottom: 20px;
+        }
+
+        .chart-wrapper {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.07);
+            flex: 1 1 calc(50% - 10px); /* Adjust basis considering gap */
+            min-width: 280px; /* Minimum width for charts */
+            /* Removed fixed height to allow content to define height */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .chart-wrapper h3 {
+            color: #495057;
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+
+        .chart-canvas-container {
+             position: relative;
+             width: 100%;
+             /* Max height can be useful, adjust as needed */
+             max-height: 350px;
+        }
+
+        /* Make canvas responsive within its container */
+        .chart-canvas {
+            display: block; /* Removes extra space below canvas */
+            width: 100%;
+            height: auto; /* Let aspect ratio determine height */
+            max-height: 350px; /* Match container max-height */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 992px) {
+             .card {
+                 flex-basis: calc(50% - 10px); /* Two cards per row */
+             }
+        }
+        @media (max-width: 768px){
+            .chart-wrapper{
+                flex-basis: 100%; /* Full width on smaller screens */
+            }
+            .header-actions {
+                flex-direction: column; /* Stack buttons vertically */
+                align-items: stretch; /* Make buttons full width */
+            }
+             .action-button a, .logout-button a {
+                 width: 100%; /* Full width buttons */
+                 box-sizing: border-box; /* Include padding in width */
+             }
+        }
+         @media (max-width: 576px) {
+             .card {
+                 flex-basis: 100%; /* One card per row */
+             }
+             body {
+                 padding: 10px; /* Less padding on very small screens */
+             }
+             .container {
+                 padding: 20px;
+             }
+         }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-actions">
+            <div class="action-button">
+                <a href="{{ url_for('tutor_student_view') }}">View Student Details</a>
+            </div>
+            <div class="logout-button">
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </div>
+
+        <h2>Tutor Dashboard - Statistics</h2>
+
+        <div class="summary-cards">
+            <div class="card">
+                <h3>Total Students</h3>
+                <p id="total-students">{{ total_students | default(0) }}</p>
+            </div>
+            <div class="card">
+                <h3>Passed Students</h3>
+                <p id="passed-students">{{ passed_students | default(0) }}</p>
+            </div>
+            <div class="card">
+                <h3>Failed Students</h3>
+                <p id="failed-students">{{ failed_students | default(0) }}</p>
+            </div>
+            <div class="card">
+                <h3>Pass Percentage</h3>
+                <p id="pass-percentage">{{ pass_percentage | round(1) | default(0) }}%</p>
+            </div>
+        </div>
+
+        <div class="charts-container">
+            <div class="chart-wrapper">
+                <h3>Student Performance Overview</h3>
+                <div class="chart-canvas-container">
+                  <canvas id="performance-chart" class="chart-canvas"></canvas>
+                </div>
+            </div>
+            <div class="chart-wrapper">
+                <h3>Subject Average Scores</h3>
+                 <div class="chart-canvas-container">
+                   <canvas id="subject-average-chart" class="chart-canvas"></canvas>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data passed from Flask template
+        const passedCount = JSON.parse('{{ passed_students | default(0) | tojson | safe }}');
+        const failedCount = JSON.parse('{{ failed_students | default(0) | tojson | safe }}');
+        // Ensure avg_subjects is a valid JSON object or an empty object
+        const averageSubjects = JSON.parse('{{ avg_subjects | tojson | safe }}' || '{}');
+
+        // Prepare data for Subject Average Chart
+        const subjectNames = Object.keys(averageSubjects);
+        const subjectAverages = Object.values(averageSubjects);
+
+        // Chart Colors (example using Chart.js defaults or custom)
+        const chartColors = {
+            pass: 'rgba(75, 192, 192, 0.6)', // Teal/Green
+            fail: 'rgba(255, 99, 132, 0.6)', // Red
+            subjects: 'rgba(54, 162, 235, 0.6)', // Blue
+            passBorder: 'rgba(75, 192, 192, 1)',
+            failBorder: 'rgba(255, 99, 132, 1)',
+            subjectsBorder: 'rgba(54, 162, 235, 1)'
+        };
+
+        // --- Performance Pie Chart ---
+        const performanceCtx = document.getElementById('performance-chart')?.getContext('2d');
+        if (performanceCtx && (passedCount > 0 || failedCount > 0)) { // Only render if data exists
+            const performanceChart = new Chart(performanceCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Passed', 'Failed'],
+                    datasets: [{
+                        label: 'Student Performance',
+                        data: [passedCount, failedCount],
+                        backgroundColor: [chartColors.pass, chartColors.fail],
+                        borderColor: [chartColors.passBorder, chartColors.failBorder],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Allow chart to fill container height better
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + ' Students';
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        title: { // Optional: Add a title within the chart area
+                            display: false, // Set to true to show
+                            text: 'Pass/Fail Distribution'
+                        }
+                    }
+                }
+            });
+        } else if (performanceCtx) {
+             performanceCtx.font = "16px Arial";
+             performanceCtx.fillStyle = "#888";
+             performanceCtx.textAlign = "center";
+             performanceCtx.fillText("No performance data available", performanceCtx.canvas.width / 2, performanceCtx.canvas.height / 2);
+        }
+
+
+        // --- Subject Average Bar Chart ---
+        const subjectAvgCtx = document.getElementById('subject-average-chart')?.getContext('2d');
+        if (subjectAvgCtx && subjectNames.length > 0) { // Only render if data exists
+            const subjectAverageChart = new Chart(subjectAvgCtx, {
+                type: 'bar',
+                data: {
+                    labels: subjectNames,
+                    datasets: [{
+                        label: 'Average Score',
+                        data: subjectAverages,
+                        backgroundColor: chartColors.subjects,
+                        borderColor: chartColors.subjectsBorder,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            suggestedMax: 100 // Suggest 100 as max score
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true, // Show legend for bar chart
+                            position: 'top',
+                        },
+                        tooltip: {
+                             callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        // Format to 1 decimal place
+                                        label += context.parsed.y.toFixed(1);
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                         title: {
+                            display: false,
+                            text: 'Average Scores by Subject'
+                        }
+                    }
+                }
+            });
+        } else if (subjectAvgCtx) {
+             subjectAvgCtx.font = "16px Arial";
+             subjectAvgCtx.fillStyle = "#888";
+             subjectAvgCtx.textAlign = "center";
+             subjectAvgCtx.fillText("No subject average data available", subjectAvgCtx.canvas.width / 2, subjectAvgCtx.canvas.height / 2);
+        }
+
+    </script>
+</body>
+</html>

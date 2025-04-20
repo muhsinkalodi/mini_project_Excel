@@ -5,57 +5,118 @@
     <title>Student Exam Performance Predictor</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            margin: 0;
             padding: 2rem;
-            background-color: #f0f2f5;
+            color: #333;
         }
+
         .container {
-            background-color: #fff;
-            padding: 2rem;
-            border-radius: 10px;
-            max-width: 600px;
+            background-color: #ffffff;
+            padding: 2.5rem;
+            border-radius: 15px;
+            max-width: 700px;
             margin: auto;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.8s ease-in-out;
         }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         h1, h2 {
             text-align: center;
+            color: #2c3e50;
         }
+
+        h1 {
+            margin-bottom: 2rem;
+            font-size: 2rem;
+        }
+
         .form-group {
-            margin-bottom: 1rem;
+            margin-bottom: 1.2rem;
         }
+
         label {
             display: block;
-            font-weight: bold;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #2c3e50;
         }
+
         select, input[type=number], input[type=submit] {
             width: 100%;
-            padding: 0.5rem;
-            margin-top: 0.25rem;
-            border-radius: 5px;
+            padding: 0.6rem;
+            font-size: 1rem;
+            border-radius: 8px;
             border: 1px solid #ccc;
+            transition: all 0.3s ease;
         }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #2575fc;
+            box-shadow: 0 0 8px rgba(37, 117, 252, 0.2);
+        }
+
+        input[type=submit] {
+            background-color: #2575fc;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        input[type=submit]:hover {
+            background-color: #1a5ed9;
+        }
+
         .result {
             margin-top: 2rem;
-            padding: 1rem;
-            border-radius: 8px;
-            background-color: #e9f7ef;
-            border-left: 5px solid #28a745;
+            padding: 1.5rem;
+            border-radius: 10px;
+            background-color: #e0f9e5;
+            border-left: 6px solid #28a745;
+            font-size: 1rem;
         }
+
         .fail {
-            background-color: #fce4e4;
-            border-left: 5px solid #e74c3c;
+            background-color: #ffe0e0;
+            border-left: 6px solid #e74c3c;
         }
+
         .dashboard-btn {
-            margin-top: 20px;
+            margin-top: 30px;
             text-align: center;
         }
+
         .dashboard-btn a {
-            background-color: #007bff;
+            background-color: #6a11cb;
             color: white;
-            padding: 10px 20px;
+            padding: 12px 25px;
+            font-size: 1rem;
             text-decoration: none;
-            border-radius: 5px;
+            border-radius: 8px;
             display: inline-block;
+            transition: background 0.3s ease;
+        }
+
+        .dashboard-btn a:hover {
+            background-color: #5211a8;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 2rem;
+            }
+            h1 {
+                font-size: 1.6rem;
+            }
         }
     </style>
 </head>
@@ -64,6 +125,10 @@
         <h1>Student Exam Performance Predictor</h1>
 
         <form action="{{ url_for('predict_datappoint') }}" method="POST">
+            {% if student_uid %}
+                <input type="hidden" name="student_uid" value="{{ student_uid }}">
+            {% endif %}
+
             <div class="form-group">
                 <label>Gender</label>
                 <select name="gender" required>
@@ -126,15 +191,16 @@
                 <input type="number" name="writing_score" min="0" max="100" required>
             </div>
 
-            <!-- Additional subjects -->
             <div class="form-group">
                 <label>Physics Score (0-100)</label>
                 <input type="number" name="physics_score" min="0" max="100">
             </div>
+
             <div class="form-group">
                 <label>Chemistry Score (0-100)</label>
                 <input type="number" name="chemistry_score" min="0" max="100">
             </div>
+
             <div class="form-group">
                 <label>Computer Science Score (0-100)</label>
                 <input type="number" name="cs_score" min="0" max="100">
@@ -143,25 +209,18 @@
             <input type="submit" value="Predict Math Score">
         </form>
 
-        {% if results is not none and reading_score is not none and writing_score is not none %}
-            {% set scores = [results, reading_score, writing_score] %}
-            {% if physics_score is not none %}{% set _ = scores.append(physics_score) %}{% endif %}
-            {% if chemistry_score is not none %}{% set _ = scores.append(chemistry_score) %}{% endif %}
-            {% if cs_score is not none %}{% set _ = scores.append(cs_score) %}{% endif %}
-
-            {% set average = (scores | sum) / (scores | length) %}
-            {% set percentage = ((scores | sum) / (scores | length * 100)) * 100 %}
-
+        {% if results is defined and average is defined %}
             <div class="result {% if average < 45 %}fail{% endif %}">
                 <h2>Results</h2>
                 <p><strong>Predicted Math Score:</strong> {{ results }}</p>
                 <p><strong>Reading Score:</strong> {{ reading_score }}</p>
                 <p><strong>Writing Score:</strong> {{ writing_score }}</p>
-                <p><strong>Physics Score:</strong> {{ physics_score if physics_score is not none else "N/A" }}</p>
-                <p><strong>Chemistry Score:</strong> {{ chemistry_score if chemistry_score is not none else "N/A" }}</p>
-                <p><strong>Computer Science Score:</strong> {{ cs_score if cs_score is not none else "N/A" }}</p>
-                <p><strong>Average Score:</strong> {{ average | round(2) }}</p>
-                <p><strong>Percentage:</strong> {{ percentage | round(2) }}%</p>
+                <p><strong>Physics Score:</strong> {{ physics_score if physics_score is not none else 'N/A' }}</p>
+                <p><strong>Chemistry Score:</strong> {{ chemistry_score if chemistry_score is not none else 'N/A' }}</p>
+                <p><strong>Computer Science Score:</strong> {{ cs_score if cs_score is not none else 'N/A' }}</p>
+                <hr>
+                <p><strong>Average Score:</strong> {{ average | default(0) | round(2) }}</p>
+                <p><strong>Percentage:</strong> {{ percentage | default(0) | round(2) }}%</p>
                 <p><strong>Status:</strong>
                     {% if average >= 45 %}
                         Pass ✅
@@ -169,6 +228,7 @@
                         Fail ❌
                     {% endif %}
                 </p>
+
                 <p><strong>Recommendation:</strong>
                     {% if average <= 10 %}
                         Focus on the basics. Start with foundational concepts and practice daily.
@@ -198,7 +258,7 @@
         {% endif %}
 
         <div class="dashboard-btn">
-            <a href="{{ url_for('student_dashboard') }}">Go to Dashboard</a>
+            <a href="{{ url_for('student_dashboard') }}">⬅️ Back to Dashboard</a>
         </div>
     </div>
 </body>

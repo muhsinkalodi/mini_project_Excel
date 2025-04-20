@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutor Login</title>
+    <!-- Firebase Compat Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+
+    <!-- Inline CSS for styling -->
+    <style>
+        /* Global Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #6e7e9a, #b5b3cc); /* Gradient Background */
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .login-container {
+            background: #ffffff;
+            padding: 40px 50px;
+            border-radius: 10px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            transform: translateY(20px);
+            animation: fadeIn 1s ease-out;
+        }
+
+        h2 {
+            font-size: 28px;
+            margin-bottom: 25px;
+            color: #4a4a4a;
+            font-weight: bold;
+        }
+
+        label {
+            font-size: 14px;
+            color: #333;
+            text-align: left;
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 25px;
+            border: 1px solid #d3d3d3;
+            border-radius: 8px;
+            font-size: 16px;
+            background-color: #f9f9f9;
+            transition: all 0.3s ease;
+        }
+
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            border-color: #3498db;
+            background-color: #f1f9ff;
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        button:active {
+            background-color: #2471a3;
+        }
+
+        .flashes {
+            list-style-type: none;
+            padding: 0;
+            margin-bottom: 20px;
+        }
+
+        .flash {
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .flash.success {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .flash.danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .flash.warning {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        /* Animation for the login container */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 500px) {
+            .login-container {
+                padding: 30px 40px;
+            }
+
+            h2 {
+                font-size: 24px;
+            }
+
+            input[type="email"],
+            input[type="password"] {
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            button {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Tutor Login</h2>
+
+        <!-- Flash messages for errors or success -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul class="flashes">
+              {% for category, message in messages %}
+                <li class="flash {{ category }}">{{ message }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+
+        <!-- Login Form -->
+        <form id="tutor-login-form" method="POST" action="{{ url_for('tutor_login') }}">
+            <label for="email">Email:</label>
+            <input type="email" name="email" id="email" required>
+
+            <label for="password">Password:</label>
+            <input type="password" name="password" id="password" required>
+
+            <!-- Hidden field to pass the Firebase ID token -->
+            <input type="hidden" name="id_token" id="id_token">
+
+            <button type="submit">Login</button>
+        </form>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBn_iWTs20aDePYq1Q8BOD9mwNT7X2_W9s",
+            authDomain: "student-performance-app-3e7d7.firebaseapp.com",
+            projectId: "student-performance-app-3e7d7",
+            storageBucket: "student-performance-app-3e7d7.firebasestorage.app",
+            messagingSenderId: "237531360212",
+            appId: "1:237531360212:web:242060fa878751c16b8441",
+            measurementId: "G-KRZYS5KW7K"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // Form handler
+        const form = document.getElementById('tutor-login-form');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();  // Prevent immediate form submission
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                // Sign in with Firebase
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+
+                // Get ID token
+                const idToken = await user.getIdToken();
+
+                // Inject ID token into form
+                document.getElementById('id_token').value = idToken;
+
+                // Submit form to Flask
+                form.submit();
+            } catch (error) {
+                console.error("Firebase login error:", error.message);
+
+                // Display error message to the user
+                alert("Login failed: " + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

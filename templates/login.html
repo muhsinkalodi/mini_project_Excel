@@ -3,25 +3,69 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login</title>
+  <title>Student Login</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    // Optional: For client-side validation and password strength indication
-    function validateForm() {
-      let email = document.forms["loginForm"]["email"].value;
-      let password = document.forms["loginForm"]["password"].value;
-      
-      if (email == "" || password == "") {
-        alert("Email and Password are required!");
-        return false;
-      }
-      return true;
-    }
+  <script type="module">
+    // Import Firebase modules
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBn_iWTs20aDePYq1Q8BOD9mwNT7X2_W9s",
+      authDomain: "student-performance-app-3e7d7.firebaseapp.com",
+      projectId: "student-performance-app-3e7d7",
+      storageBucket: "student-performance-app-3e7d7.firebasestorage.app",
+      messagingSenderId: "237531360212",
+      appId: "1:237531360212:web:242060fa878751c16b8441",
+      measurementId: "G-KRZYS5KW7K"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Handle login form submission
+    document.addEventListener("DOMContentLoaded", () => {
+      const loginForm = document.getElementById("loginForm");
+
+      loginForm.addEventListener("submit", async (event) => {
+        event.preventDefault(); // Prevent the default form submission
+
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+
+        if (!email || !password) {
+          alert("Please enter both email and password.");
+          return;
+        }
+
+        try {
+          // Sign in with Firebase
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+          // After successful login, get the ID token
+          const idToken = await userCredential.user.getIdToken();
+
+          // Add the ID token to the form as a hidden input
+          const hiddenTokenField = document.createElement("input");
+          hiddenTokenField.type = "hidden";
+          hiddenTokenField.name = "id_token";
+          hiddenTokenField.value = idToken;
+          loginForm.appendChild(hiddenTokenField);
+
+          // Now submit the form
+          loginForm.submit();
+        } catch (error) {
+          alert("Login failed: " + error.message); // Show Firebase authentication error
+        }
+      });
+    });
   </script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center h-screen">
   <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-    <h2 class="text-2xl font-bold mb-6 text-center text-green-600">Login</h2>
+    <h2 class="text-2xl font-bold mb-6 text-center text-green-600">Student Login</h2>
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
@@ -33,22 +77,22 @@
       {% endif %}
     {% endwith %}
 
-    <form action="{{ url_for('login') }}" method="POST" class="space-y-4" name="loginForm" onsubmit="return validateForm()">
+    <form id="loginForm" action="{{ url_for('login') }}" method="POST" class="space-y-4">
       <div>
         <label for="email" class="block text-sm font-medium">Email</label>
-        <input type="email" name="email" required class="w-full px-3 py-2 border rounded-md" aria-label="Email" />
+        <input type="email" id="email" name="email" required class="w-full px-3 py-2 border rounded-md" />
       </div>
       <div>
         <label for="password" class="block text-sm font-medium">Password</label>
-        <input type="password" name="password" required class="w-full px-3 py-2 border rounded-md" aria-label="Password" />
+        <input type="password" id="password" name="password" required class="w-full px-3 py-2 border rounded-md" />
       </div>
-      <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring focus:ring-green-300">Login</button>
+      <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700">Login</button>
     </form>
 
-    <p class="mt-4 text-sm text-center">Don't have an account?
+    <p class="mt-4 text-sm text-center">
+      Don't have an account?
       <a href="{{ url_for('register') }}" class="text-green-600 hover:underline">Register</a>
     </p>
   </div>
-<script src="../static/js/script.js"></script>
 </body>
 </html>
