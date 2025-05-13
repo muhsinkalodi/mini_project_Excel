@@ -1,127 +1,92 @@
 import os
 import sys
-
 from dataclasses import dataclass
 
-from catboost import CatBoostRegressor
+from sklearn.multioutput import MultiOutputRegressor
 from sklearn.ensemble import (
-        AdaBoostRegressor,
-        GradientBoostingRegressor,
-        RandomForestRegressor,
-        
+    RandomForestRegressor,
+    GradientBoostingRegressor,
+    AdaBoostRegressor,
 )
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
-from sklearn.neighbors import  KNeighborsRegressor
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
 from xgboost import XGBRegressor
-
+from catboost import CatBoostRegressor
+from sklearn.metrics import r2_score
 
 from src.exception import CustomException
 from src.logger import logging
-
-
-from src.utils import save_object, evaluate_model
+from src.utils import save_object, evaluate_model_multi
 
 
 @dataclass
 class ModelTrainerConfig:
-    trained_model_file_path = os.path.join('artifacts','model.pkl')
+    trained_model_file_path = os.path.join('artifacts', 'model.pkl')
+
 
 class ModelTrainer:
     def __init__(self):
         self.model_trainer_config = ModelTrainerConfig()
-    
+
     def initiate_model_trainer(self, train_array, test_array):
         try:
-            logging.info("Split training and test data")
-            x_train, y_train, x_test, y_test = (
-                train_array[:, :-1],
-                train_array[:, -1],
-                test_array[:, :-1],
-                test_array[:, -1]
-            )
+            logging.info("Splitting training and test data")
 
-            models = {
-    "Random Forest": RandomForestRegressor(),
-    "Decision Tree": DecisionTreeRegressor(),
-    "Gradient Boosting": GradientBoostingRegressor(),
-    "Linear Regression": LinearRegression(),
-    "KNeighbors Regressor": KNeighborsRegressor(),
-    "XGB Regressor": XGBRegressor(),
-    "CatBoost Regressor": CatBoostRegressor(verbose=False),
-    "Ada Boost Regressor": AdaBoostRegressor(),
-}
-            param={
-                "Decision Tree": {
-                    "criterion": ["squared_error", "friedman_mse", "absolute_error", "poisson"],
-                    "splitter": ["best", "random"],
-                },
-                "Random Forest": {
-                    # "criterion": ["squared_error", "absolute_error", "poisson"],
-                    # "max_features": ["sqrt", "log2","None"],
-                    'n_estimators': [8, 16, 32, 64, 128, 256],
-                },
-                "Gradient Boosting": {
-                    "learning_rate": [.1,.01,.05,.001],
-                    "subsample": [0.6,0.7,0.75,0.8,0.85,0.9],
-                    "n_estimators": [8,16,32,84,128,256],
-                    # "max_depth": [3, 5, 7],
-                },
-                "Linear Regression": {},
-                "KNeighbors Regressor": {
-                    "n_neighbors": [ 5, 7, 9,11],
-                    # "weights": ["uniform", "distance"],
-                },
-                "XGB Regressor": {
-                    "learning_rate": [.1,.01,.05,.001],
-                    # "subsample": [0.6,0.7,0.75,0.8,0.85,0.9],
-                    "n_estimators": [8,16,32,84,128,256],
-                    # "max_depth": [3, 5, 7],
-                },
-                "CatBoost Regressor": {
-                'depth': [6,8,10],
-                "learning_rate": [0.01,0.05,0.1],
-                # "n_estimators": [8,16,32,84,128,256],
-                'iterations': [30,50,100],
-                },   
+            # ✅ Now handle multi-output (e.g., 6 subjects)
+            x_train, y_train = train_array[:, :-6], train_array[:, -6:]
+            x_test, y_test = test_array[:, :-6], test_array[:, -6:]
 
-                "Ada Boost Regressor": {
-                    "learning_rate": [.1,.01,0.5,0.1],
-                    # "subsample": [0.6,0.7,0.75,0.8,0.85,0.9],
-                    "n_estimators": [8,16,32,84,128,256],
-                    # "max_depth": [3, 5, 7],
-                },
-
-
+            base_models = {
+                "Random Forest": RandomForestRegressor(),
+                "Gradient Boosting": GradientBoostingRegressor(),
+                "Ada Boost": AdaBoostRegressor(),
+                "Decision Tree": DecisionTreeRegressor(),
+                "Linear Regression": LinearRegression(),
+                "KNeighbors": KNeighborsRegressor(),
+                "XGBoost": XGBRegressor(),
+                "CatBoost": CatBoostRegressor(verbose=0)
             }
 
+            wrapped_models = {
+                name: MultiOutputRegressor(model)
+                for name, model in base_models.items()
+            }
 
-            model_report: dict = evaluate_model(
-                x_train=x_train, y_train=y_train, 
-                x_test=x_test, y_test=y_test, 
-                models=models,param=param
+            print("\n📊 Evaluating Multi-Output Models...\n")
+            model_report = evaluate_model_multi(
+                x_train=x_train, y_train=y_train,
+                x_test=x_test, y_test=y_test,
+                models=wrapped_models
             )
 
-            best_model_score = max(sorted(model_report.values()))
-            best_model_name = list(model_report.keys())[
-                list(model_report.values()).index(best_model_score)
-            ]
-            best_model = models[best_model_name]
+            for model_name, score in model_report.items():
+                print(f"✅ {model_name} Average R² Score: {score:.4f}")
 
-            if best_model_score < 0.6:
-                raise CustomException("No best model found")
+            best_model_name = max(model_report, key=model_report.get)
+            best_model = wrapped_models[best_model_name]
+            best_score = model_report[best_model_name]
 
-            logging.info(f"Best model found: {best_model_name} with score: {best_model_score}")
+            print(f"\n🏆 Best Model: {best_model_name} with Average R² Score: {best_score:.4f}")
 
+            if best_score < 0.4:
+                raise CustomException("No suitable model found with R² >= 0.4", sys)
+
+            logging.info(f"Saving best multi-output model: {best_model_name}")
             save_object(
                 file_path=self.model_trainer_config.trained_model_file_path,
                 obj=best_model
             )
 
-            predicted = best_model.predict(x_test)
-            r2_square = r2_score(y_test, predicted)
-            return r2_square
+            predictions = best_model.predict(x_test)
+            r2_scores = [
+                r2_score(y_test[:, i], predictions[:, i])
+                for i in range(y_test.shape[1])
+            ]
+            avg_r2 = sum(r2_scores) / len(r2_scores)
+
+            print(f"\n📈 Final Test Average R² Score: {avg_r2:.4f}")
+            return avg_r2
 
         except Exception as e:
             raise CustomException(e, sys)

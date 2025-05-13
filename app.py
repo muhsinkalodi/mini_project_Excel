@@ -1,23 +1,24 @@
 # -*- coding: utf-8 -*-
 import os
 import numpy as np
-from flask import Flask, render_template, request, redirect, url_for, flash, session,send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file
 from dotenv import load_dotenv
 from pymongo import MongoClient
 import firebase_admin
 from firebase_admin import credentials, auth, _auth_utils
 from firebase_admin.auth import UserNotFoundError
-from config import FIREBASE_CREDENTIALS,FIREBASE_CONFIG# Assuming config.py exists with FIREBASE_CREDENTIALS
-from src.pipeline.predict_pipline import CustomData, PredictPipline
-from src.utils import login_required # Assuming utils.py exists with login_required decorator
+from config import FIREBASE_CREDENTIALS, FIREBASE_CONFIG  # Assuming config.py exists with FIREBASE_CREDENTIALS
+from src.pipeline.predict_pipline import CustomData, PredictPipeline
+from src.utils import login_required  # Assuming utils.py exists with login_required decorator
 import pandas as pd
 from flask import Blueprint, request, send_file
 import matplotlib
 from matplotlib import pyplot as plt
 from reportlab.lib.utils import ImageReader
+# from src.auth import login_required
 
 from io import BytesIO
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 from collections import defaultdict  # Import defaultdict
@@ -25,16 +26,12 @@ from bson import ObjectId
 import random
 import string
 import traceback
-matplotlib.use('Agg')
- # For better error logging
-
-# Define Blueprint (if used elsewhere, otherwise optional for this snippet)
-# download_bp = Blueprint('download_bp', __name__)
+matplotlib.use('Agg')  # For better error logging
 
 # Initialize Flask App
 application = Flask(__name__)
 app = application
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'a_default_secret_key_for_dev') # Use environment variable for production
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'a_default_secret_key_for_dev')  # Use environment variable for production
 
 # Load environment variables
 load_dotenv()
@@ -50,14 +47,13 @@ except Exception as e:
     # exit(1)
 
 
-
 # MongoDB setup
-mongo_uri = os.environ.get("MONGO_URI", "mongodb://localhost:27017/student_performance") # Use env variable
+mongo_uri = os.environ.get("MONGO_URI", "mongodb://localhost:27017/student_performance")  # Use env variable
 try:
     client = MongoClient(mongo_uri)
     # The ismaster command is cheap and does not require auth.
     client.admin.command('ismaster')
-    db = client.student_performance # Use the specific database name directly
+    db = client.student_performance  # Use the specific database name directly
     print("MongoDB connection successful.")
 except Exception as e:
     print(f"Error connecting to MongoDB: {e}")
@@ -70,6 +66,7 @@ def safe_get(data, key, default=None):
     """Safely get a value from a dictionary, returning default if key missing."""
     return data.get(key, default) if isinstance(data, dict) else default
 
+
 app.jinja_env.globals.update(safe_get=safe_get)
 
 # ==================== ROOT ====================
@@ -81,7 +78,7 @@ def index():
         if user.get('role') == 'student':
             return redirect(url_for('student_dashboard'))
         elif user.get('role') == 'tutor':
-            return redirect(url_for('tutor_dashboard')) # Or tutor_student_view
+            return redirect(url_for('tutor_dashboard'))  # Or tutor_student_view
         elif user.get('role') == 'admin':
             return redirect(url_for('admin_panel'))
     return render_template('index.html')
@@ -224,126 +221,111 @@ def login():
     # If GET request or failed POST
     return render_template("login.html")
 
-# Route to display the student dashboard
-# @app.route("/student_dashboard")
-# @login_required(role="student")  # Ensure only students access this route
-# def student_dashboard():
-#     user = session.get("user")
-#     if not user:
-#         flash("Please log in to access the dashboard.", "danger")
-#         return redirect(url_for("login"))
-
-#     # Get student data from MongoDB or Firebase as needed
-#     student_data = db.students.find_one({"uid": user["uid"]})
-#     return render_template("student_dashboard.html", student_data=student_data)
-
-# # Example login_required decorator with role-based access
-# def login_required(role=None):
-#     """
-#     Decorator to ensure a user is logged in and has the specified role.
-#     :param role: Optional, the role that the user must have (e.g. "student", "admin")
-#     """
-#     from functools import wraps
-#     def decorator(f):
-#         @wraps(f)
-#         def decorated_function(*args, **kwargs):
-#             if "user" not in session:
-#                 flash("You need to log in first.", "warning")
-#                 return redirect(url_for("login"))
-
-#             # If a role is specified, check if the user's role matches
-#             if role and session["user"].get("role") != role:
-#                 flash(f"Access restricted to {role}s only.", "danger")
-#                 return redirect(url_for("login"))
-
-#             return f(*args, **kwargs)
-#         return decorated_function
-#     return decorator
-
-
-
-# Other routes like student_dashboard, register, etc.
-
-
 
 
 # ==================== STUDENT DASHBOARD ====================
 @app.route("/student_dashboard")
-@login_required(role="student") # Ensure only students access this
+@login_required(role="student")
 def student_dashboard():
     user_session = session.get("user")
     if not user_session:
-        return redirect(url_for('login')) # Should be caught by decorator, but safety first
+        return redirect(url_for('login'))
 
     try:
+        # Get student data from database
         student_data = db.users.find_one({"uid": user_session["uid"]})
         if not student_data:
-             flash("Could not retrieve student data.", "danger")
-             return redirect(url_for('logout')) # Log out if data is missing
+            flash("Could not retrieve student data.", "danger")
+            return redirect(url_for('logout'))
 
-        # Convert ObjectIds in history for template rendering
-        history = []
+        # Process marks history with proper defaults
+        processed_history = []
+        subjects = ['math', 'physics', 'chemistry', 'cs', 'english', 'aptitude']
+        
         for entry in student_data.get("marks_history", []):
-            if isinstance(entry, dict) and '_id' in entry:
-                 entry['_id'] = str(entry['_id'])
-            history.append(entry)
+            # Create a new entry with all required fields
+            processed_entry = {
+                '_id': str(entry.get('_id', '')),
+                'semester': entry.get('semester', 'N/A'),
+                'pass_status': entry.get('pass_status', 'Pending'),
+                'average': entry.get('average', 0),
+                'percentage': entry.get('percentage', 0)
+            }
+            
+            # Add all subject data with defaults
+            for subject in subjects:
+                processed_entry[f'{subject}_predicted'] = entry.get(f'{subject}_predicted', 0)
+                processed_entry[f'{subject}_internal1'] = entry.get(f'{subject}_internal1', 0)
+                processed_entry[f'{subject}_internal2'] = entry.get(f'{subject}_internal2', 0)
+                processed_entry[f'{subject}_internal3'] = entry.get(f'{subject}_internal3', 0)
+            
+            processed_history.append(processed_entry)
 
-        return render_template("student_dashboard.html", user=student_data, history=history)
+        # Ensure student_data has all required fields
+        student_data.setdefault('name', 'Unknown')
+        student_data.setdefault('email', 'No email')
+        student_data.setdefault('gender', 'Not specified')
+
+        return render_template(
+            "student_dashboard.html",
+            user=student_data,
+            history=processed_history
+        )
+        
     except Exception as e:
-        print(f"Error fetching student dashboard data: {e}\n{traceback.format_exc()}")
+        print(f"Error loading dashboard: {str(e)}\n{traceback.format_exc()}")
         flash("An error occurred while loading your dashboard.", "danger")
         return redirect(url_for('logout'))
 
 
 # ==================== PREDICT DATA (Handles Student & Tutor-for-Student) ====================
-@app.route('/predictdata', methods=['GET', 'POST'])
+@app.route('/predict_datappoint', methods=['GET', 'POST'])
 @login_required(role="student,tutor")
 def predict_datappoint():
     if request.method == 'POST':
         try:
-            # Extract form values
-            gender = request.form.get('gender')
-            race_ethnicity = request.form.get('ethnicity')
-            parental_level_of_education = request.form.get('parental_level_of_education')
-            lunch = request.form.get('lunch')
-            test_preparation_course = request.form.get('test_preparation_course')
-            reading_score = float(request.form.get('reading_score'))
-            writing_score = float(request.form.get('writing_score'))
-            physics_score = float(request.form.get('physics_score'))
-            chemistry_score = float(request.form.get('chemistry_score'))
-            cs_score = float(request.form.get('cs_score'))
+            semester = request.form.get("semester")
+            if not semester or not semester.isdigit() or int(semester) not in range(1, 9):
+                flash("Please select a valid semester (1-8).", "danger")
+                return redirect(request.url)
+            semester = int(semester)
 
-            # Create input dataframe
-            data = CustomData(
-                gender=gender,
-                race_ethnicity=race_ethnicity,
-                parental_level_of_education=parental_level_of_education,
-                lunch=lunch,
-                test_preparation_course=test_preparation_course,
-                reading_score=reading_score,
-                writing_score=writing_score
-            )
-            pred_df = data.get_data_as_data_frame()
-            predict_pipeline = PredictPipline()
-            results = predict_pipeline.predict(pred_df)
-            predicted_score = round(float(results[0]), 2)
+            fields = ['math', 'physics', 'chemistry', 'cs', 'english', 'aptitude']
+            internal_marks = {}
 
-            # Score processing
-            total_scores = predicted_score + reading_score + writing_score + physics_score + chemistry_score + cs_score
-            average = round(total_scores / 6, 2)
-            percentage = round((average / 100) * 100, 2)
-            pass_status = "Pass" if percentage >= 45 else "Fail"
+            for subject in fields:
+                for i in range(1, 4):
+                    field_name = f"{subject}_internal{i}"
+                    value = request.form.get(field_name)
+                    if not value:
+                        flash(f"Missing input for {field_name}.", "danger")
+                        return redirect(request.url)
+                    try:
+                        internal_marks[field_name] = float(value)
+                    except ValueError:
+                        flash(f"Invalid input for {field_name}.", "danger")
+                        return redirect(request.url)
+
+            data = CustomData(**internal_marks)
+            pred_df = data.get_data_as_dataframe()
+            pipeline = PredictPipeline()
+            results = pipeline.predict(pred_df)[0].tolist()
+
+            predicted_scores_dict = {
+                f"{subject}_predicted": round(prediction, 2)
+                for subject, prediction in zip(fields, results)
+            }
+
+            average = round(sum(results) / len(fields), 2)
+            pass_status = "Pass" if average >= 45 else "Fail"
 
             new_entry = {
                 "_id": ObjectId(),
-                "predicted_math_score": predicted_score,
-                "reading_score": reading_score,
-                "writing_score": writing_score,
-                "physics_score": physics_score,
-                "chemistry_score": chemistry_score,
-                "cs_score": cs_score,
+                "semester": semester,
+                **internal_marks,
+                **predicted_scores_dict,
                 "average": average,
-                "percentage": percentage,
+                "percentage": average,  # Assuming 100 max
                 "pass_status": pass_status,
                 "predicted_by": session['user']['uid']
             }
@@ -355,41 +337,35 @@ def predict_datappoint():
                     db.users.update_one({"uid": student_uid}, {"$push": {"marks_history": new_entry}})
                     flash("Prediction saved for student.", "success")
                     return redirect(url_for('tutor_view_student_dashboard', student_uid=student_uid))
-                else:
-                    flash("Missing student UID.", "danger")
-                    return redirect(url_for('tutor_student_view'))
+                flash("Missing student UID.", "danger")
+                return redirect(request.url)
 
             elif user_role == 'student':
                 db.users.update_one({"uid": session['user']['uid']}, {"$push": {"marks_history": new_entry}})
                 flash("Prediction saved.", "success")
-
                 return render_template(
-                        "home.html",
-                        results=predicted_score,
-                        reading_score=reading_score,
-                        writing_score=writing_score,
-                        physics_score=physics_score,
-                        chemistry_score=chemistry_score,
-                        cs_score=cs_score,
-                        average=average,
-                        percentage=percentage,
-                        pass_status=pass_status
-                    )
-
+                    "home.html",
+                    results=predicted_scores_dict,
+                    internal_marks=internal_marks,
+                    average=average,
+                    percentage=average,
+                    pass_status=pass_status,
+                    student_uid=session['user']['uid'],
+                    student_name=session['user']['name'],
+                    selected_semester=semester
+                )
 
         except Exception as e:
             print(f"Prediction Error: {e}\n{traceback.format_exc()}")
-            flash("Prediction failed. Ensure all scores are valid.", "danger")
-            return redirect(url_for('home'))
+            flash("Prediction failed.", "danger")
+            return redirect(request.url)
 
-    # GET handler
     user_role = session.get('user', {}).get('role')
     if user_role == 'student':
-        return render_template('home.html', results=None)
+        return render_template('home.html', results=None, internal_marks={}, student_uid=session['user']['uid'], student_name=session['user']['name'], selected_semester="")
     elif user_role == 'tutor':
         return redirect(url_for('tutor_student_view'))
     return redirect(url_for('login'))
-
 
 
 # ==================== DOWNLOAD REPORT ====================
@@ -405,7 +381,6 @@ def download_report():
         flash("No user specified for report.", "warning")
         return redirect(request.referrer or url_for('index'))
 
-    # Only allow students to download their own report, tutors can download any
     if requesting_user['role'] == 'student' and requesting_user['uid'] != uid_to_download:
         flash("You are not authorized to download this report.", "danger")
         return redirect(url_for('student_dashboard'))
@@ -413,167 +388,421 @@ def download_report():
     user = db.users.find_one({'uid': uid_to_download, 'role': 'student'})
     if not user:
         flash("Student data not found.", "warning")
-        if requesting_user['role'] == 'tutor':
-            return redirect(url_for('tutor_student_view'))
-        else:
-            return redirect(url_for('student_dashboard'))
+        return redirect(url_for('tutor_student_view') if requesting_user['role'] == 'tutor' else url_for('student_dashboard'))
 
     history = user.get('marks_history', [])
     if not history:
         flash("No prediction history found for this student.", "warning")
-        if requesting_user['role'] == 'tutor':
-            return redirect(url_for('tutor_student_view'))
-        else:
-            return redirect(url_for('student_dashboard'))
+        return redirect(url_for('tutor_student_view') if requesting_user['role'] == 'tutor' else url_for('student_dashboard'))
 
     latest = history[-1]
+    semester = latest.get("semester", "N/A")
+    subjects = ['math', 'physics', 'chemistry', 'cs', 'english', 'aptitude']
 
-    # Create chart
-    chart_buffer = None
     try:
-        chart_labels = ['Math', 'Reading', 'Writing', 'Physics', 'Chemistry', 'CS']
-        chart_scores = [
-            latest.get("predicted_math_score", 0),
-            latest.get("reading_score", 0),
-            latest.get("writing_score", 0),
-            latest.get("physics_score", 0),
-            latest.get("chemistry_score", 0),
-            latest.get("cs_score", 0)
-        ]
-
-        valid_scores = [s for s in chart_scores if isinstance(s, (int, float))]
-        valid_labels = [l for s, l in zip(chart_scores, chart_labels) if isinstance(s, (int, float))]
-
-        if valid_scores:
-            fig, ax = plt.subplots(figsize=(6, 4))
-            ax.pie(valid_scores, labels=valid_labels, autopct='%1.1f%%', startangle=90)
-            chart_buffer = BytesIO()
-            plt.savefig(chart_buffer, format='PNG', bbox_inches='tight')
-            chart_buffer.seek(0)
-            plt.close(fig)
-    except Exception as e:
-        print(f"Chart generation error: {e}")
-        chart_buffer = None
-
-    # Create PDF
-    try:
+        # Create buffer for PDF
         buffer = BytesIO()
+        
+        # Set up PDF canvas with A4 size in portrait
         p = canvas.Canvas(buffer, pagesize=A4)
         width, height = A4
-
-        p.setFont("Helvetica-Bold", 16)
-        p.drawCentredString(width / 2.0, height - 50, "Student Performance Report")
+        
+        # Color Palette
+        primary_color = (0.2, 0.4, 0.8)       # Navy Blue
+        secondary_color = (0.3, 0.3, 0.3)      # Dark Gray
+        accent_color = (0.8, 0.2, 0.2)         # Red
+        success_color = (0.2, 0.6, 0.3)        # Green
+        warning_color = (0.9, 0.6, 0.1)        # Orange
+        
+        # Set background to white
+        p.setFillColorRGB(1, 1, 1)
+        p.rect(0, 0, width, height, fill=1, stroke=0)
+        
+        # Header with minimal design
+        p.saveState()
+        p.setFillColorRGB(*primary_color)
+        p.rect(0, height - 80, width, 80, fill=1, stroke=0)
+        
+        # Logo/Title
+        p.setFillColorRGB(1, 1, 1)
+        p.setFont("Helvetica-Bold", 18)
+        p.drawCentredString(width / 2, height - 50, "ACADEMIC PERFORMANCE REPORT")
+        p.setFont("Helvetica", 10)
+        p.drawCentredString(width / 2, height - 70, f"Semester {semester} • Generated on {pd.Timestamp.now().strftime('%d %b %Y')}")
+        p.restoreState()
+        
+        # Student Information Section
+        p.saveState()
+        p.setFillColorRGB(0.95, 0.95, 0.95)  # Light gray background
+        p.roundRect(40, height - 150, width - 80, 70, 5, fill=1, stroke=0)
+        p.restoreState()
+        
+        y_position = height - 160
+        p.setFillColorRGB(*secondary_color)
         p.setFont("Helvetica-Bold", 12)
-        p.drawCentredString(width / 2.0, height - 70, user.get('name', 'N/A'))
-
-        # Basic Info
-        p.setFont("Helvetica", 11)
-        p.drawString(inch, height - 100, f"Email: {user.get('email', 'N/A')}")
-        p.drawString(inch, height - 115, f"Gender: {user.get('gender', 'N/A')}")
-        p.drawString(inch, height - 130, f"UID: {user.get('uid', 'N/A')}")
-        p.line(inch, height - 145, width - inch, height - 145)
-
-        # Prediction Summary
-        p.setFont("Helvetica-Bold", 14)
-        p.drawString(inch, height - 170, "Latest Prediction Summary:")
-
-        p.setFont("Helvetica", 11)
-        y_position = height - 195
-        line_height = 18
-        col_x = inch + 10
-
-        fields = [
-            ("Math Score (Predicted)", latest.get("predicted_math_score")),
-            ("Reading Score", latest.get("reading_score")),
-            ("Writing Score", latest.get("writing_score")),
-            ("Physics Score", latest.get("physics_score")),
-            ("Chemistry Score", latest.get("chemistry_score")),
-            ("Computer Science Score", latest.get("cs_score")),
+        p.drawString(50, y_position, "STUDENT INFORMATION")
+        y_position -= 20
+        
+        # Student info in two columns
+        col1_x = 50
+        col2_x = width / 2
+        line_height = 16
+        
+        info_data = [
+            ("Full Name:", user.get('name', 'N/A')),
+            ("Student ID:", user.get('uid', 'N/A')),
+            ("Email:", user.get('email', 'N/A')),
+            ("Gender:", user.get('gender', 'N/A').capitalize()),
+            ("Program:", "B.Tech Computer Science"),
+            ("Department:", "Computer Science")
         ]
-
-        for label, value in fields:
-            p.drawString(col_x, y_position, f"{label}: {value if value is not None else 'N/A'}")
-            y_position -= line_height
-
-        # Summary Stats
-        y_position -= line_height
-        p.setFont("Helvetica-Bold", 11)
-        p.drawString(col_x, y_position, f"Overall Average: {latest.get('average', 'N/A')}")
-        y_position -= line_height
-        p.drawString(col_x, y_position, f"Overall Percentage: {latest.get('percentage', 'N/A')}%")
-        y_position -= line_height
-        p.drawString(col_x, y_position, f"Pass/Fail Status: {latest.get('pass_status', 'N/A')}")
-        y_position -= line_height * 1.5
-
-        # Insert Chart
-        if chart_buffer:
-            p.setFont("Helvetica-Bold", 14)
-            p.drawString(inch, y_position, "Score Distribution Chart:")
-            y_position -= line_height
-
-            try:
-                chart_image = ImageReader(chart_buffer)
-                img_width, img_height = chart_image.getSize()
-                aspect = img_height / float(img_width)
-
-                max_chart_width = width - 2 * inch
-                max_chart_height = inch * 3
-                display_width = max_chart_width
-                display_height = display_width * aspect
-
-                if display_height > max_chart_height:
-                    display_height = max_chart_height
-                    display_width = display_height / aspect
-
-                if y_position - display_height < 50:
-                    p.showPage()
-                    y_position = height - inch
-                    p.setFont("Helvetica-Bold", 14)
-                    p.drawString(inch, y_position, "Score Distribution Chart:")
-                    y_position -= line_height
-
-                p.drawImage(
-                    chart_image,
-                    (width - display_width) / 2.0,
-                    y_position - display_height,
-                    width=display_width,
-                    height=display_height,
-                    preserveAspectRatio=True
+        
+        p.setFont("Helvetica", 10)
+        for i, (label, value) in enumerate(info_data):
+            x = col1_x if i % 2 == 0 else col2_x
+            y = y_position - (i // 2) * line_height
+            
+            p.setFillColorRGB(0.4, 0.4, 0.4)
+            p.drawString(x, y, label)
+            p.setFillColorRGB(*secondary_color)
+            p.drawString(x + 70, y, value)
+        
+        # Performance Highlights
+        y_position -= 100
+        
+        # Section Header
+        p.setFillColorRGB(*secondary_color)
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, y_position, "PERFORMANCE HIGHLIGHTS")
+        y_position -= 25
+        
+        # Highlight Cards
+        card_width = (width - 100) / 3
+        card_height = 70
+        
+        # Card 1: Overall Average
+        draw_rounded_card(p, 40, y_position - card_height, card_width - 10, card_height, primary_color)
+        p.setFillColorRGB(1, 1, 1)
+        p.setFont("Helvetica-Bold", 10)
+        p.drawCentredString(40 + (card_width-10)/2, y_position - 40, "OVERALL AVERAGE")
+        p.setFont("Helvetica-Bold", 20)
+        p.drawCentredString(40 + (card_width-10)/2, y_position - 65, f"{latest.get('average', 'N/A')}")
+        
+        # Card 2: Percentage
+        draw_rounded_card(p, 50 + card_width, y_position - card_height, card_width - 10, card_height, secondary_color)
+        p.setFillColorRGB(1, 1, 1)
+        p.setFont("Helvetica-Bold", 10)
+        p.drawCentredString(50 + card_width + (card_width-10)/2, y_position - 40, "PERCENTAGE")
+        p.setFont("Helvetica-Bold", 20)
+        p.drawCentredString(50 + card_width + (card_width-10)/2, y_position - 65, f"{latest.get('percentage', 'N/A')}%")
+        
+        # Card 3: Status
+        status = latest.get('pass_status', 'N/A')
+        status_color = success_color if status.lower() == 'pass' else accent_color
+        draw_rounded_card(p, 60 + 2*card_width, y_position - card_height, card_width - 10, card_height, status_color)
+        p.setFillColorRGB(1, 1, 1)
+        p.setFont("Helvetica-Bold", 10)
+        p.drawCentredString(60 + 2*card_width + (card_width-10)/2, y_position - 40, "STATUS")
+        p.setFont("Helvetica-Bold", 20)
+        p.drawCentredString(60 + 2*card_width + (card_width-10)/2, y_position - 65, status.upper())
+        
+        # Subject Performance Table
+        y_position -= 100
+        
+        # Section Header
+        p.setFillColorRGB(*secondary_color)
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, y_position, "SUBJECT PERFORMANCE DETAILS")
+        y_position -= 25
+        
+        # Table Headers
+        headers = ["Subject", "Int 1", "Int 2", "Int 3", "Predicted", "Avg"]
+        col_widths = [80, 60, 60, 60, 80, 60]
+        table_start_x = 50
+        
+        # Header Background
+        p.saveState()
+        p.setFillColorRGB(0.9, 0.9, 0.9)
+        p.roundRect(table_start_x, y_position - 5, sum(col_widths), 20, 3, fill=1, stroke=0)
+        p.restoreState()
+        
+        # Header Text
+        p.setFont("Helvetica-Bold", 9)
+        p.setFillColorRGB(*secondary_color)
+        for i, header in enumerate(headers):
+            p.drawString(table_start_x + sum(col_widths[:i]) + 5, y_position, header)
+        
+        y_position -= 20
+        
+        # Table Rows
+        p.setFont("Helvetica", 9)
+        for idx, sub in enumerate(subjects):
+            # Alternate row background
+            if idx % 2 == 0:
+                p.saveState()
+                p.setFillColorRGB(0.97, 0.97, 0.97)
+                p.roundRect(table_start_x, y_position - 3, sum(col_widths), 15, 2, fill=1, stroke=0)
+                p.restoreState()
+            
+            # Calculate average
+            internals = [
+                latest.get(f"{sub}_internal1", 0),
+                latest.get(f"{sub}_internal2", 0),
+                latest.get(f"{sub}_internal3", 0)
+            ]
+            avg = sum(mark for mark in internals if isinstance(mark, (int, float))) / 3 if all(isinstance(mark, (int, float)) for mark in internals) else "N/A"
+            
+            # Subject name
+            p.setFillColorRGB(*secondary_color)
+            p.setFont("Helvetica-Bold", 9)
+            p.drawString(table_start_x + 5, y_position, sub.upper())
+            
+            # Internal marks
+            p.setFont("Helvetica", 9)
+            p.setFillColorRGB(*secondary_color)
+            for i, mark in enumerate(internals, start=1):
+                p.drawString(table_start_x + sum(col_widths[:i]) + (col_widths[i-1]/2 - 5), y_position, str(mark))
+            
+            # Predicted mark
+            predicted = latest.get(f"{sub}_predicted", "N/A")
+            p.drawString(table_start_x + sum(col_widths[:4]) + (col_widths[4]/2 - 5), y_position, str(predicted))
+            
+            # Average (with conditional coloring)
+            if isinstance(avg, (int, float)):
+                if avg < 40:  # Red for low scores
+                    p.setFillColorRGB(*accent_color)
+                elif avg < 60:  # Orange for medium scores
+                    p.setFillColorRGB(*warning_color)
+                else:  # Green for good scores
+                    p.setFillColorRGB(*success_color)
+                p.setFont("Helvetica-Bold", 9)
+                p.drawString(table_start_x + sum(col_widths[:5]) + (col_widths[5]/2 - 5), y_position, f"{avg:.1f}")
+            else:
+                p.setFillColorRGB(*secondary_color)
+                p.drawString(table_start_x + sum(col_widths[:5]) + (col_widths[5]/2 - 5), y_position, str(avg))
+            
+            y_position -= 15
+        
+        # Performance Charts Section
+        y_position -= 30
+        p.setFillColorRGB(*secondary_color)
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, y_position, "PERFORMANCE VISUALIZATION")
+        y_position -= 25
+        
+        try:
+            chart_scores = [latest.get(f"{sub}_predicted", 0) for sub in subjects]
+            valid_scores = [s for s in chart_scores if isinstance(s, (int, float))]
+            valid_labels = [sub.capitalize() for s, sub in zip(chart_scores, subjects) if isinstance(s, (int, float))]
+            
+            if valid_scores:
+                # Create donut chart
+                pie_buffer = BytesIO()
+                fig, ax = plt.subplots(figsize=(5, 5))
+                
+                # Color palette
+                colors = ['#4e79a7', '#f28e2b', '#e15759', '#76b7b2', '#59a14f', '#edc948']
+                
+                # Outer pie
+                wedges, texts, autotexts = ax.pie(
+                    valid_scores,
+                    labels=valid_labels,
+                    colors=colors[:len(valid_scores)],
+                    startangle=90,
+                    wedgeprops=dict(width=0.4, edgecolor='w'),
+                    textprops={'fontsize': 8},
+                    pctdistance=0.85,
+                    autopct=lambda p: f'{p:.1f}%' if p >= 5 else ''
                 )
-
-            except Exception as chart_err:
-                print(f"Error drawing chart image: {chart_err}")
-                p.setFont("Helvetica-Oblique", 10)
-                p.drawString(inch, y_position - 15, "(Chart could not be rendered)")
-        else:
-            p.setFont("Helvetica-Oblique", 10)
-            p.drawString(inch, y_position - 15, "(No chart data available)")
-
+                
+                # Inner circle
+                centre_circle = plt.Circle((0,0), 0.2, color='white', fc='white', linewidth=0)
+                ax.add_artist(centre_circle)
+                
+                # Center text
+                avg_score = sum(valid_scores)/len(valid_scores) if valid_scores else 0
+                ax.text(0, 0, f"{avg_score:.1f}\nAvg", ha='center', va='center', 
+                       fontsize=12, fontweight='bold', color=secondary_color)
+                
+                ax.set_title('Subject Score Distribution', fontsize=10, pad=15, 
+                            fontweight='bold', color=secondary_color)
+                plt.tight_layout()
+                plt.savefig(pie_buffer, format='PNG', dpi=150, bbox_inches='tight', transparent=True)
+                pie_buffer.seek(0)
+                plt.close(fig)
+                
+                # Add pie chart to PDF
+                pie_image = ImageReader(pie_buffer)
+                p.drawImage(pie_image, 50, y_position - 200, width=250, height=200)
+                
+                # Create bar chart
+                bar_buffer = BytesIO()
+                fig, ax = plt.subplots(figsize=(6, 4))
+                
+                # Calculate internal averages
+                internal_avgs = []
+                for sub in subjects:
+                    internals = [
+                        latest.get(f"{sub}_internal1", 0),
+                        latest.get(f"{sub}_internal2", 0),
+                        latest.get(f"{sub}_internal3", 0)
+                    ]
+                    avg = sum(mark for mark in internals if isinstance(mark, (int, float))) / 3 if all(isinstance(mark, (int, float)) for mark in internals) else 0
+                    internal_avgs.append(avg)
+                
+                x = range(len(subjects))
+                width_bar = 0.35
+                
+                # Bar styling
+                bars1 = ax.bar(
+                    [i - width_bar/2 for i in x], 
+                    internal_avgs, 
+                    width_bar, 
+                    label='Internal Avg', 
+                    color=primary_color,
+                    edgecolor='white',
+                    linewidth=0.5
+                )
+                
+                bars2 = ax.bar(
+                    [i + width_bar/2 for i in x], 
+                    chart_scores, 
+                    width_bar, 
+                    label='Predicted', 
+                    color=success_color,
+                    edgecolor='white',
+                    linewidth=0.5
+                )
+                
+                # Value labels
+                for bars in [bars1, bars2]:
+                    for bar in bars:
+                        height = bar.get_height()
+                        ax.text(bar.get_x() + bar.get_width()/2., height-5,
+                                f'{int(height)}',
+                                ha='center', va='bottom',
+                                color='white', fontsize=6, fontweight='bold')
+                
+                ax.set_xticks(x)
+                ax.set_xticklabels([sub.capitalize() for sub in subjects], 
+                                  fontsize=8, color=secondary_color)
+                ax.set_ylabel('Scores', fontsize=8, color=secondary_color)
+                ax.set_title('Internal vs Predicted Scores', 
+                             fontsize=10, pad=10, 
+                             fontweight='bold', color=secondary_color)
+                ax.legend(fontsize=7, framealpha=0.9)
+                ax.grid(axis='y', linestyle='--', alpha=0.4)
+                ax.set_axisbelow(True)
+                
+                # Clean up chart
+                for spine in ['top', 'right']:
+                    ax.spines[spine].set_visible(False)
+                
+                plt.tight_layout()
+                plt.savefig(bar_buffer, format='PNG', dpi=150, bbox_inches='tight', transparent=True)
+                bar_buffer.seek(0)
+                plt.close(fig)
+                
+                # Add bar chart to PDF
+                bar_image = ImageReader(bar_buffer)
+                p.drawImage(bar_image, width/2 + 20, y_position - 200, width=250, height=200)
+                
+            else:
+                p.setFont("Helvetica", 9)
+                p.setFillColorRGB(*accent_color)
+                p.drawString(50, y_position - 20, "No valid score data available for charts.")
+        except Exception as chart_err:
+            print(f"Chart generation error: {chart_err}")
+            p.setFont("Helvetica", 9)
+            p.setFillColorRGB(*accent_color)
+            p.drawString(50, y_position - 20, "Chart generation failed")
+        
+        # Performance Insights
+        y_position -= 230
+        
+        # Section Header
+        p.setFillColorRGB(*secondary_color)
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, y_position, "PERFORMANCE INSIGHTS")
+        y_position -= 25
+        
+        # Insight Cards
+        top_subject = max([(sub, latest.get(f"{sub}_predicted", 0)) for sub in subjects], key=lambda x: x[1])
+        weak_subject = min([(sub, latest.get(f"{sub}_predicted", 0)) for sub in subjects], key=lambda x: x[1])
+        avg_score = latest.get('average', 0)
+        
+        insight_data = [
+            ("Top Performing Subject", f"{top_subject[0].capitalize()} ({top_subject[1]}%)", primary_color),
+            ("Needs Improvement", f"{weak_subject[0].capitalize()} ({weak_subject[1]}%)", accent_color),
+            ("Recommendation", 
+             "Focus on consistent practice across all subjects" if avg_score < 60 
+             else "Excellent performance - maintain your efforts", 
+             success_color if avg_score >= 60 else warning_color)
+        ]
+        
+        card_width = (width - 100) / 3
+        card_height = 70
+        
+        for i, (title, value, color) in enumerate(insight_data):
+            draw_rounded_card(p, 50 + i*(card_width + 5), y_position - card_height, card_width - 10, card_height, color)
+            p.setFillColorRGB(1, 1, 1)
+            p.setFont("Helvetica-Bold", 9)
+            p.drawCentredString(50 + i*(card_width + 5) + (card_width-10)/2, y_position - 40, title.upper())
+            p.setFont("Helvetica", 8)
+            text = p.beginText(50 + i*(card_width + 5) + 10, y_position - 60)
+            text.setFont("Helvetica", 9)
+            text.textLines(value)
+            p.drawText(text)
+        
         # Footer
-        p.setFont("Helvetica-Oblique", 9)
-        p.drawCentredString(width / 2.0, 30,
-            f"Report generated on {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')} by Student Performance System"
+        p.saveState()
+        p.setFillColorRGB(0.9, 0.9, 0.9)
+        p.rect(0, 20, width, 30, fill=1, stroke=0)
+        p.setFillColorRGB(*secondary_color)
+        p.setFont("Helvetica-Oblique", 7)
+        p.drawCentredString(
+            width / 2, 
+            30,
+            f"Generated by EduPredict • {pd.Timestamp.now().strftime('%d %b %Y %H:%M')} • Confidential"
         )
-
-        p.showPage()
+        p.restoreState()
+        
+        # Watermark (subtle)
+        p.saveState()
+        p.setFont("Helvetica", 40)
+        p.setFillColorRGB(0.95, 0.95, 0.95)
+        p.setFillAlpha(0.1)
+        p.drawCentredString(width / 2, height / 2, "EDUPREDICT")
+        p.restoreState()
+        
         p.save()
         buffer.seek(0)
-
-        download_name = f"{user.get('name', 'student').replace(' ', '_')}_performance_report.pdf"
+        
+        # Generate filename
+        student_name = user.get('name', 'student').replace(' ', '_')
+        filename = f"Academic_Report_{student_name}_Sem_{semester}.pdf"
+        
         return send_file(
             buffer,
             as_attachment=True,
-            download_name=download_name,
+            download_name=filename,
             mimetype='application/pdf'
         )
-
+        
     except Exception as pdf_err:
-        print(f"PDF Generation Error: {pdf_err}\n{traceback.format_exc()}")
+        print(f"PDF generation error: {pdf_err}\n{traceback.format_exc()}")
         flash("An error occurred while generating the PDF report.", "danger")
-        if requesting_user['role'] == 'tutor':
-            return redirect(url_for('tutor_student_view'))
-        else:
-            return redirect(url_for('student_dashboard'))
+        return redirect(url_for('tutor_student_view') if requesting_user['role'] == 'tutor' else url_for('student_dashboard'))
+
+def draw_rounded_card(canvas, x, y, width, height, fill_color, radius=5):
+    """Helper function to draw rounded rectangle cards"""
+    canvas.saveState()
+    canvas.setFillColor(fill_color)
+    canvas.setStrokeColorRGB(0.8, 0.8, 0.8)
+    canvas.setLineWidth(0.5)
+    canvas.roundRect(x, y, width, height, radius, fill=1, stroke=1)
+    canvas.restoreState()
+    
 # ==================== GENERATE INVITE CODE ====================
 @app.route('/generate_invite', methods=['GET'])
 @login_required(role="admin")  # Only admin can generate
@@ -581,13 +810,47 @@ def generate_invite():
     invite_code = 'TUTOR-' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     try:
         db.tutor_invites.insert_one({'code': invite_code, 'used': False, 'created_at': pd.Timestamp.now()})
-        flash(f'New invite code generated: {invite_code}', 'success')
+        flash(f"Invite code generated: {invite_code}", "success")
     except Exception as e:
         print(f"Error generating invite code: {e}")
-        flash('Failed to generate invite code.', 'danger')
+        flash("Failed to generate invite code.", "danger")
+    return redirect(url_for('admin_panel'))  # Redirect to admin panel
+
+
+# ==================== TOGGLE TUTOR ACCESS (Admin Action) ====================
+@app.route('/toggle_tutor_access/<tutor_uid>', methods=['POST'])
+@login_required(role='admin')
+def toggle_tutor_access(tutor_uid):
+    try:
+        tutor = db.users.find_one({'uid': tutor_uid, 'role': 'tutor'})
+        if not tutor:
+            flash('Tutor not found.', 'danger')
+            return redirect(url_for('admin_panel'))
+
+        current_status = tutor.get('access_restricted', False)
+        new_status = not current_status
+
+        db.users.update_one({'uid': tutor_uid}, {'$set': {'access_restricted': new_status}})
+
+        # Optional: Disable tutor's Firebase account as well for complete restriction
+        # try:
+        #     auth.update_user(tutor_uid, disabled=new_status)
+        # except Exception as firebase_err:
+        #     print(f"Firebase user disable/enable error for {tutor_uid}: {firebase_err}")
+        #     flash(f"Tutor access updated in DB, but Firebase status update failed: {firebase_err}", "warning")
+        #     # Decide if you should revert DB change or just warn
+
+        flash(f"Tutor '{tutor.get('name')}' access has been {'RESTRICTED' if new_status else 'UNRESTRICTED'}.", 'success')
+
+    except Exception as e:
+        print(f"Error toggling tutor access for {tutor_uid}: {e}\n{traceback.format_exc()}")
+        flash("An error occurred while updating tutor access.", 'danger')
+
     return redirect(url_for('admin_panel'))
 
-# ==================== TUTOR REGISTER ====================
+
+
+# ==================== REGISTER TUTOR ====================
 @app.route('/tutor_register', methods=['GET', 'POST'])
 def tutor_register():
     if request.method == 'POST':
@@ -664,26 +927,6 @@ def tutor_register():
     return render_template('tutor_register.html')
 
 
-@app.route("/tutor_view_student_dashboard/<student_uid>")
-@login_required(role="tutor")
-def tutor_view_student_dashboard(student_uid):
-    try:
-        student = db.users.find_one({"uid": student_uid, "role": "student"})
-        if not student:
-            flash("Student not found.", "danger")
-            return redirect(url_for('tutor_student_view'))
-
-        history = student.get("marks_history", [])
-        for entry in history:
-            if '_id' in entry:
-                entry['_id'] = str(entry['_id'])
-
-        return render_template("student_dashboard.html", user=student, history=history)
-
-    except Exception as e:
-        print(f"Error loading student dashboard for tutor: {e}")
-        flash("Could not load student dashboard.", "danger")
-        return redirect(url_for('tutor_student_view'))
 
 # ==================== TUTOR LOGIN ====================
 @app.route('/tutor_login', methods=['GET', 'POST'])
@@ -745,40 +988,7 @@ def tutor_login():
 
         return redirect(url_for('tutor_login'))
 
-    return render_template("tutor_login.html")
-# ==================== ADMIN LOGIN ====================
-@app.route('/admin_login', methods=['GET', 'POST'])
-def admin_login():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-
-        # Fetch admin credentials from environment variables
-        admin_email = os.environ.get('ADMIN_EMAIL')
-        admin_password = os.environ.get('ADMIN_PASSWORD')
-
-        if not admin_email or not admin_password:
-             flash('Admin account is not configured on the server.', 'danger')
-             print("ERROR: ADMIN_EMAIL or ADMIN_PASSWORD environment variables not set.")
-             return redirect(url_for('admin_login'))
-
-        if email == admin_email and password == admin_password:
-            # No Firebase check for the hardcoded admin. Use with caution.
-            # Consider creating a proper admin user in Firebase/DB if needed.
-            session['user'] = {
-                'email': email,
-                'uid': 'admin_special_uid',  # Keep a unique identifier
-                'name': 'Administrator',
-                'role': 'admin'
-            }
-            flash('Admin logged in successfully.', 'success')
-            return redirect(url_for('admin_panel'))
-        else:
-            flash('Invalid admin credentials.', 'danger')
-            return redirect(url_for('admin_login'))
-
-    return render_template('admin_login.html')
-
+    return render_template("tutor_login.html")      
 # ==================== ADMIN PANEL ====================
 @app.route('/admin_panel')
 @login_required(role='admin')
@@ -827,184 +1037,437 @@ def admin_panel():
         flash("Failed to load admin panel data.", "danger")
         return redirect(url_for('index')) # Or logout
 
-# ==================== TOGGLE TUTOR ACCESS (Admin Action) ====================
-@app.route('/toggle_tutor_access/<tutor_uid>', methods=['POST'])
-@login_required(role='admin')
-def toggle_tutor_access(tutor_uid):
-    try:
-        tutor = db.users.find_one({'uid': tutor_uid, 'role': 'tutor'})
-        if not tutor:
-            flash('Tutor not found.', 'danger')
+
+# ==================== ADMIN LOGIN ====================
+@app.route('/admin_login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        # Fetch admin credentials from environment variables
+        admin_email = os.environ.get('ADMIN_EMAIL')
+        admin_password = os.environ.get('ADMIN_PASSWORD')
+
+        if not admin_email or not admin_password:
+             flash('Admin account is not configured on the server.', 'danger')
+             print("ERROR: ADMIN_EMAIL or ADMIN_PASSWORD environment variables not set.")
+             return redirect(url_for('admin_login'))
+
+        if email == admin_email and password == admin_password:
+            # No Firebase check for the hardcoded admin. Use with caution.
+            # Consider creating a proper admin user in Firebase/DB if needed.
+            session['user'] = {
+                'email': email,
+                'uid': 'admin_special_uid',  # Keep a unique identifier
+                'name': 'Administrator',
+                'role': 'admin'
+            }
+            flash('Admin logged in successfully.', 'success')
             return redirect(url_for('admin_panel'))
+        else:
+            flash('Invalid admin credentials.', 'danger')
+            return redirect(url_for('admin_login'))
 
-        current_status = tutor.get('access_restricted', False)
-        new_status = not current_status
+    return render_template('admin_login.html')
 
-        db.users.update_one({'uid': tutor_uid}, {'$set': {'access_restricted': new_status}})
-
-        # Optional: Disable tutor's Firebase account as well for complete restriction
-        # try:
-        #     auth.update_user(tutor_uid, disabled=new_status)
-        # except Exception as firebase_err:
-        #     print(f"Firebase user disable/enable error for {tutor_uid}: {firebase_err}")
-        #     flash(f"Tutor access updated in DB, but Firebase status update failed: {firebase_err}", "warning")
-        #     # Decide if you should revert DB change or just warn
-
-        flash(f"Tutor '{tutor.get('name')}' access has been {'RESTRICTED' if new_status else 'UNRESTRICTED'}.", 'success')
-
-    except Exception as e:
-        print(f"Error toggling tutor access for {tutor_uid}: {e}\n{traceback.format_exc()}")
-        flash("An error occurred while updating tutor access.", 'danger')
-
-    return redirect(url_for('admin_panel'))
-
-
-# ==================== TUTOR DASHBOARD (Old - Kept for Reference/Stats) ====================
-# This shows overall stats. The new primary view is tutor_student_view.
-@app.route("/tutor_dashboard")
-@login_required(role="tutor,admin") # Allow admin to see stats too
+# ==================== TUTOR DASHBOARD ====================
+@app.route('/tutor_dashboard')
+@login_required(role="tutor")
 def tutor_dashboard():
-    # This dashboard can now focus on aggregate statistics
+    # Get all students
     students = list(db.users.find({"role": "student"}))
-
+    
+    # Calculate statistics
     total_students = len(students)
-    passed_students = 0
-    failed_students = 0
-    subject_scores = defaultdict(lambda: {'total': 0, 'count': 0}) # Store total and count for avg
-
-    for student in students:
-        latest_history = student.get("marks_history", [])
-        if latest_history:
-            latest_result = latest_history[-1] # Get the *last* entry
-
-            if isinstance(latest_result, dict): # Ensure it's a dictionary
-                if latest_result.get("pass_status") == "Pass":
-                    passed_students += 1
-                else: # Assumes 'Fail' or anything else is fail
-                    failed_students += 1
-
-                # Accumulate scores for averages, checking type
-                subjects = ["predicted_math_score", "reading_score", "writing_score", "physics_score", "chemistry_score", "cs_score"]
-                subject_keys_map = {"predicted_math_score": "Math", "reading_score": "Reading", "writing_score": "Writing", "physics_score": "Physics", "chemistry_score": "Chemistry", "cs_score": "CS"}
-
-                for db_key in subjects:
-                    score = latest_result.get(db_key)
-                    if isinstance(score, (int, float)):
-                        display_key = subject_keys_map.get(db_key, db_key)
-                        subject_scores[display_key]['total'] += score
-                        subject_scores[display_key]['count'] += 1
-
-    # Calculate percentages
+    passed_students = sum(1 for s in students if s.get('marks_history') and s['marks_history'][-1]['pass_status'] == 'Pass')
+    failed_students = total_students - passed_students
     pass_percentage = (passed_students / total_students * 100) if total_students > 0 else 0
-    fail_percentage = (failed_students / total_students * 100) if total_students > 0 else 0
-
-    # Calculate average scores per subject
-    average_scores = {}
-    for subject, data in subject_scores.items():
-        average_scores[subject] = round(data['total'] / data['count'], 2) if data['count'] > 0 else 0
-
+    
+    # Calculate average subject scores
+    subjects = ['math', 'physics', 'chemistry', 'cs', 'english', 'aptitude']
+    avg_subjects = {}
+    
+    for subject in subjects:
+        scores = []
+        for student in students:
+            if student.get('marks_history'):
+                latest = student['marks_history'][-1]
+                scores.append(latest.get(f"{subject}_predicted", 0))
+        if scores:
+            avg_subjects[subject] = sum(scores) / len(scores)
+    
     return render_template(
-        "tutor_dashboard.html", # Keep the old template for stats
+        'tutor_dashboard.html',
+        students=students,
         total_students=total_students,
         passed_students=passed_students,
         failed_students=failed_students,
         pass_percentage=pass_percentage,
-        fail_percentage=fail_percentage,
-        avg_subjects=average_scores
+        avg_subjects=avg_subjects
+    )
+# ==================== TUTOR-STUDENT VIEW (Student List for Tutor) ====================
+@app.route('/tutor/students')
+@login_required(role="tutor")
+def tutor_student_view():
+    try:
+        students = list(db.users.find({"role": "student"}).sort('name', 1))
+        
+        processed_students = []
+        for idx, student in enumerate(students, 1):
+            # Ensure 'marks_history' exists and has at least one entry
+            marks_history = student.get('marks_history', [])
+            latest_entry = marks_history[-1] if marks_history else {}
+
+            # Extract predicted scores and internal marks from the latest entry
+            predicted_scores = {
+                subject: latest_entry.get(f"{subject}_predicted", "N/A")
+                for subject in ['math', 'physics', 'chemistry', 'cs', 'english', 'aptitude']
+            }
+            internal_marks = {
+                subject: [
+                    latest_entry.get(f"{subject}_internal1", "N/A"),
+                    latest_entry.get(f"{subject}_internal2", "N/A"),
+                    latest_entry.get(f"{subject}_internal3", "N/A")
+                ]
+                for subject in ['math', 'physics', 'chemistry', 'cs', 'english', 'aptitude']
+            }
+
+            # Calculate average and pass status
+            average = latest_entry.get("average", "N/A")
+            pass_status = latest_entry.get("pass_status", "N/A")
+
+            processed_students.append({
+                's_no': idx,
+                'uid': student.get('uid', 'N/A'),
+                'name': student.get('name', 'N/A'),
+                'email': student.get('email', 'N/A'),
+                'predicted': predicted_scores,
+                'internals': internal_marks,
+                'average': average,
+                'status': pass_status,
+                'login_restricted': student.get('login_restricted', False)
+            })
+        
+        return render_template(
+            'tutor_student_view.html',
+            students=processed_students,
+            tutor_name=session['user']['name']
+        )
+        
+    except Exception as e:
+        print(f"Error fetching students: {str(e)}")
+        flash('Error loading student data', 'danger')
+        return render_template('tutor_student_view.html', students=[], tutor_name=session['user']['name'])
+
+
+# ==================== TUTOR PREDICT FOR STUDENT ====================
+@app.route('/tutor/predict-page/<student_uid>', methods=['GET'])
+@login_required(role="tutor")
+def tutor_student_prediction_page(student_uid):
+    student = db.users.find_one({'uid': student_uid})
+    if not student:
+        flash("Student not found.", "danger")
+        return redirect(url_for('tutor_student_view'))
+
+    return render_template(
+        "home.html",
+        student=student,
+        student_uid=student_uid,
+        student_name=student.get("name", ""),
+        internal_marks={},        # Prevent Jinja error
+        results=None,
+        average=None,
+        percentage=None,
+        pass_status=None,
+        selected_semester=""
     )
 
 
-# <<< NEW FEATURE >>> ==================== TUTOR STUDENT VIEW (Primary Table) ====================
-@app.route("/tutor_student_view")
-@login_required(role="tutor") # Only tutors access this primary view
-def tutor_student_view():
+# ==================== TUTOR VIEW STUDENT DASHBOARD ====================
+@app.route("/tutor/student/<student_uid>")
+@login_required(role="tutor")
+def tutor_view_student_dashboard(student_uid):
     try:
-        students = list(db.users.find({"role": "student"}))
-        processed_students = []
-        s_no = 1
-        for student in students:
-            latest_marks = {}
-            history = student.get("marks_history", [])
-            if history and isinstance(history[-1], dict):
-                latest_marks = history[-1] # Get the last entry dictionary
-
-            processed_students.append({
-                's_no': s_no,
-                'uid': student.get('uid', 'N/A'),
-                'name': student.get('name', 'N/A'),
-                'gender': student.get('gender', 'N/A'),
-                'login_restricted': student.get('login_restricted', False), # Get restriction status
-                # Safely get scores, defaulting to 'N/A' or 0 if missing
-                'math': latest_marks.get('predicted_math_score', 'N/A'),
-                'reading': latest_marks.get('reading_score', 'N/A'),
-                'writing': latest_marks.get('writing_score', 'N/A'),
-                'physics': latest_marks.get('physics_score', 'N/A'),
-                'chemistry': latest_marks.get('chemistry_score', 'N/A'),
-                'cs': latest_marks.get('cs_score', 'N/A'),
-                'average': latest_marks.get('average', 'N/A'),
-                'percentage': latest_marks.get('percentage', 'N/A'),
-                'status': latest_marks.get('pass_status', 'N/A')
-            })
-            s_no += 1
-
-        return render_template("tutor_student_view.html", students=processed_students)
-
-    except Exception as e:
-        print(f"Error loading tutor student view: {e}\n{traceback.format_exc()}")
-        flash("An error occurred while loading student data.", "danger")
-        return redirect(url_for('tutor_dashboard')) # Redirect to stats dashboard or logout
-
-
-# <<< NEW FEATURE >>> ==================== TUTOR PREDICT FOR STUDENT (Form Access) ====================
-@app.route('/tutor_predict_for_student/<student_uid>', methods=['GET'])
-@login_required(role='tutor')
-def tutor_predict_for_student(student_uid):
-    try:
-        student = db.users.find_one({'uid': student_uid, 'role': 'student'})
-        if not student:
-            flash("Student not found.", 'danger')
+        # Get student data with proper error handling
+        student_data = db.users.find_one({"uid": student_uid})
+        if not student_data:
+            flash("Student not found", "danger")
             return redirect(url_for('tutor_student_view'))
 
-        # Render the *existing* prediction form, but pass the student_uid
-        # The form's action should point to '/predictdata' (POST)
-        return render_template('home.html', results=None, student_uid=student_uid, student_name=student.get('name'))
+        # Process marks history with default values
+        processed_history = []
+        for entry in student_data.get("marks_history", []):
+            # Ensure all required fields exist with default values
+            processed_entry = {
+                'semester': entry.get('semester', 'N/A'),
+                'pass_status': entry.get('pass_status', 'Pending'),
+                'average': entry.get('average', 0),
+                'percentage': entry.get('percentage', 0),
+                '_id': str(entry.get('_id', ''))
+            }
+            
+            # Add all subject data with defaults
+            subjects = ['math', 'physics', 'chemistry', 'cs', 'english', 'aptitude']
+            for subject in subjects:
+                processed_entry[f'{subject}_predicted'] = entry.get(f'{subject}_predicted', 0)
+                processed_entry[f'{subject}_internal1'] = entry.get(f'{subject}_internal1', 0)
+                processed_entry[f'{subject}_internal2'] = entry.get(f'{subject}_internal2', 0)
+                processed_entry[f'{subject}_internal3'] = entry.get(f'{subject}_internal3', 0)
+            
+            processed_history.append(processed_entry)
 
+        return render_template(
+            "student_dashboard.html",
+            user=student_data,
+            history=processed_history,
+            tutor_name=session['user']['name']
+        )
+        
     except Exception as e:
-        print(f"Error accessing prediction form for student {student_uid}: {e}\n{traceback.format_exc()}")
-        flash("An error occurred while trying to predict for the student.", "danger")
+        print(f"Error viewing student dashboard: {str(e)}")
+        flash("Error loading student dashboard", "danger")
         return redirect(url_for('tutor_student_view'))
 
-
-# <<< NEW FEATURE >>> ==================== TOGGLE STUDENT LOGIN (Tutor Action) ====================
-@app.route('/toggle_student_login/<student_uid>', methods=['POST'])
-@login_required(role='tutor') # Only Tutors can restrict students
+# Add this to your route temporarily
+@app.route('/tutor/student_debug')
+@login_required(role="tutor")
+def tutor_student_debug():
+    student_uid = request.args.get('student_uid')  # Retrieve student_uid from the request arguments
+    if not student_uid:
+        flash("Student UID is missing.", "danger")
+        return redirect(url_for('tutor_student_view'))  # Redirect to a relevant page
+    student = db.users.find_one({'uid': student_uid})  # Retrieve the student from the database
+    print(f"Attempting to view student: {student_uid}")
+    print(f"Student found: {bool(student)}")
+    print(f"Template path: {os.path.exists(os.path.join(app.template_folder, 'student_dashboard.html'))}")
+@app.route('/tutor/toggle-login/<student_uid>', methods=['POST'])
+@login_required(role="tutor")
 def toggle_student_login(student_uid):
+    """Allows tutor to restrict/unrestrict student login."""
+    student = db.users.find_one({'uid': student_uid})
+    if not student:
+        flash('Student not found', 'danger')
+        return redirect(url_for('tutor_student_view'))
+    
+    new_status = not student.get('login_restricted', False)
+    db.users.update_one(
+        {'uid': student_uid},
+        {'$set': {'login_restricted': new_status}}
+    )
+    
+    action = "restricted" if new_status else "unrestricted"
+    flash(f'Login {action} for {student["name"]}', 'success')
+    return redirect(url_for('tutor_student_view'))
+
+# ======
+
+
+# ==================== ASSIGN STUDENT TO TUTOR ====================
+@app.route('/assign_student', methods=['POST'])
+@login_required(role="tutor")
+def assign_student():
+    """Assigns a student to a tutor."""
+    tutor_uid = session['user']['uid']
+    student_uid = request.form.get('student_uid')
+
+    # Input validation
+    if not student_uid:
+        flash('No student selected.', 'danger')
+        return redirect(url_for('tutor_dashboard'))
+
+    # Check if student exists and is a student
+    student = db.users.find_one({'uid': student_uid, 'role': 'student'})
+    if not student:
+        flash('Invalid student selected.', 'danger')
+        return redirect(url_for('tutor_dashboard'))
+
+    # Check if the student is already assigned.
+    tutor = db.users.find_one({'uid': tutor_uid}, {'assigned_students': 1})
+    assigned_students = tutor.get('assigned_students', [])
+    if student_uid in assigned_students:
+        flash('Student already assigned to you.', 'warning') 
+        return redirect(url_for('tutor_dashboard'))
+
     try:
-        student = db.users.find_one({'uid': student_uid, 'role': 'student'})
-        if not student:
-            flash('Student not found.', 'danger')
-            return redirect(url_for('tutor_student_view'))
-
-        current_status = student.get('login_restricted', False)
-        new_status = not current_status
-
-        db.users.update_one({'uid': student_uid}, {'$set': {'login_restricted': new_status}})
-
-        flash(f"Student '{student.get('name')}' login access has been {'RESTRICTED' if new_status else 'UNRESTRICTED'}.", 'success')
-
+        # Update the tutor's assigned_students list.
+        db.users.update_one({'uid': tutor_uid}, {'$push': {'assigned_students': student_uid}})
+        flash('Student assigned successfully.', 'success')
     except Exception as e:
-        print(f"Error toggling student login for {student_uid}: {e}\n{traceback.format_exc()}")
-        flash('An error occurred while updating student login status.', 'danger')
+        print(f"Error assigning student: {e}")
+        flash('Failed to assign student.', 'danger')
+    return redirect(url_for('tutor_dashboard'))
 
-    return redirect(url_for('tutor_student_view')) # Redirect back to the table
+
+# ==================== UNASSIGN STUDENT FROM TUTOR ====================
+@app.route('/unassign_student', methods=['POST'])
+@login_required(role="tutor")
+def unassign_student():
+    """Unassigns a student from a tutor."""
+    tutor_uid = session['user']['uid']
+    student_uid = request.form.get('student_uid')
+
+    # Input validation
+    if not student_uid:
+        flash('No student selected.', 'danger')
+        return redirect(url_for('tutor_dashboard'))
+
+     # Check if student exists and is a student
+    student = db.users.find_one({'uid': student_uid, 'role': 'student'})
+    if not student:
+        flash('Invalid student selected.', 'danger')
+        return redirect(url_for('tutor_dashboard'))
+
+    try:
+        # Remove the student from the tutor's assigned_students list.
+        db.users.update_one({'uid': tutor_uid}, {'$pull': {'assigned_students': student_uid}})
+        flash('Student unassigned successfully.', 'success')
+    except Exception as e:
+        print(f"Error unassigning student: {e}")
+        flash('Failed to unassign student.', 'danger')
+    return redirect(url_for('tutor_dashboard'))
+
+
+
+# ==================== VIEW ALL STUDENTS (FOR ADMIN) ====================
+@app.route('/admin/students')
+@login_required(role="admin")
+def admin_view_all_students():
+    """View all students in the system."""
+    students = list(db.users.find({'role': 'student'}, {'name': 1, 'uid': 1, 'email': 1}))
+    for student in students:
+        student['_id'] = str(student['_id'])
+    return render_template('admin_view_students.html', students=students)  # New template
+
+
+# ==================== VIEW ALL TUTORS (FOR ADMIN) ====================
+@app.route('/admin/tutors')
+@login_required(role="admin")
+def admin_view_all_tutors():
+    """View all tutors in the system."""
+    tutors = list(db.users.find({'role': 'tutor'}, {'name': 1, 'uid': 1, 'email': 1}))
+    for tutor in tutors:
+        tutor['_id'] = str(tutor['_id'])
+    return render_template('admin_view_tutors.html', tutors=tutors)  # New template
+
+
+# ==================== STUDENT SEARCH (FOR TUTOR and ADMIN) ====================
+@app.route('/search', methods=['GET'])
+@login_required(role="tutor,admin")
+def search():
+    """Search for students by name or email."""
+    query = request.args.get('query', '')  # Get the search query
+    user_role = session.get('user').get('role')
+
+    if not query:
+        flash("Please enter a search query.", "warning")
+        if user_role == 'tutor':
+            return redirect(url_for('tutor_student_view'))
+        else:
+            return redirect(url_for('admin_view_all_students'))
+
+    # Search the database
+    search_results = list(db.users.find(
+        {
+            'role': 'student',  # Only search within students
+            '$or': [
+                {'name': {'$regex': query, '$options': 'i'}},  # Case-insensitive name search
+                {'email': {'$regex': query, '$options': 'i'}}  # Case-insensitive email search
+            ]
+        },
+        {'name': 1, 'uid': 1, 'email': 1} # only return these fields
+    ))
+    for result in search_results:
+        result['_id'] = str(result['_id'])
+
+    if not search_results:
+        flash("No students found matching your query.", "info")
+    # Render the appropriate template based on the user's role
+    if user_role == 'tutor':
+        return render_template('tutor_student_view.html', students=search_results, query=query, tutor_name=session['user']['name']) #same template
+    else:
+        return render_template('admin_view_students.html', students=search_results, query=query)  # You might need a new template
+
+
+# ==================== RESTRICT STUDENT LOGIN (FOR TUTOR and ADMIN) ====================
+@app.route('/restrict_login', methods=['POST'])
+@login_required(role="tutor,admin")
+def restrict_login():
+    """Restrict a student's login."""
+    student_uid = request.form.get('student_uid')
+    tutor_uid = session.get('user').get('uid')
+    user_role = session.get('user').get('role')
+
+    if not student_uid:
+        flash('No student selected.', 'danger')
+        return redirect(request.referrer)  # Redirect back
+
+    # Check if the student exists and is a student
+    student = db.users.find_one({'uid': student_uid, 'role': 'student'})
+    if not student:
+        flash('Invalid student.', 'danger')
+        return redirect(request.referrer)
+
+    if user_role == 'tutor':
+        # Check if the student is assigned to the tutor
+        tutor = db.users.find_one({'uid': tutor_uid}, {'assigned_students': 1})
+        assigned_students = tutor.get('assigned_students', [])
+        if student_uid not in assigned_students:
+            flash("You are not authorized to restrict this student's login.", "danger")
+            return redirect(request.referrer)
+
+    try:
+        db.users.update_one({'uid': student_uid}, {'$set': {'login_restricted': True}})
+        flash('Student login restricted.', 'success')
+    except Exception as e:
+        print(f"Error restricting login: {e}")
+        flash('Failed to restrict student login.', 'danger')
+    return redirect(request.referrer)
+
+# ==================== UNRESTRICT STUDENT LOGIN (FOR TUTOR and ADMIN) ====================
+@app.route('/unrestrict_login', methods=['POST'])
+@login_required(role="tutor,admin")
+def unrestrict_login():
+    """Unrestrict a student's login."""
+    student_uid = request.form.get('student_uid')
+    tutor_uid = session.get('user').get('uid')
+    user_role = session.get('user').get('role')
+
+    if not student_uid:
+        flash('No student selected.', 'danger')
+        return redirect(request.referrer)  # Redirect back
+
+    # Check if the student exists and is a student
+    student = db.users.find_one({'uid': student_uid, 'role': 'student'})
+    if not student:
+        flash('Invalid student.', 'danger')
+        return redirect(request.referrer)
+
+    if user_role == 'tutor':
+        # Check if the student is assigned to the tutor
+        tutor = db.users.find_one({'uid': tutor_uid}, {'assigned_students': 1})
+        assigned_students = tutor.get('assigned_students', [])
+        if student_uid not in assigned_students:
+            flash("You are not authorized to unrestrict this student's login.", "danger")
+            return redirect(request.referrer)
+
+    try:
+        db.users.update_one({'uid': student_uid}, {'$set': {'login_restricted': False}})
+        flash('Student login unrestricted.', 'success')
+    except Exception as e:
+        print(f"Error unrestricting login: {e}")
+        flash('Failed to unrestrict student login.', 'danger')
+    return redirect(request.referrer)
+
 
 
 # ==================== LOGOUT ====================
-@app.route("/logout")
+@app.route('/logout')
 def logout():
-    session.clear()
-    flash("You have been logged out successfully.", "info")
-    return redirect(url_for("index")) # Redirect to landing page
+    session.pop('user', None)
+    flash('Logged out successfully.', 'success')
+    return redirect(url_for('index'))
+
 
 
 # ==================== HOME ROUTE (Generic prediction form - might be less used now) ====================
@@ -1013,24 +1476,27 @@ def logout():
 @app.route('/home')
 @login_required(role="student,tutor") # Can be accessed by logged-in users
 def home():
-     # If accessed directly, render the form without specific student context
-     # Check if a student_uid is passed (e.g., from redirect after failed prediction)
-     student_uid = request.args.get('student_uid') # Check query params
-     student_name = None
-     if session['user']['role'] == 'tutor' and student_uid:
-         try:
-             student = db.users.find_one({'uid': student_uid}, {'name': 1})
-             if student:
-                 student_name = student.get('name')
-         except Exception as e:
-             print(f"Error finding student name for home route: {e}")
+    # If accessed directly, render the form without specific student context
+    # Check if a student_uid is passed (e.g., from redirect after failed prediction)
+    student_uid = request.args.get('student_uid')  # Check query params
+    student_name = None
+    internal_marks = {}
+    if session['user']['role'] == 'tutor' and student_uid:
+        try:
+            student = db.users.find_one({'uid': student_uid}, {'name': 1})
+            if student:
+                student_name = student.get('name')
+        except Exception as e:
+            print(f"Error finding student name for home route: {e}")
 
-     return render_template('home.html', results=None, student_uid=student_uid, student_name=student_name)
+    return render_template('home.html', results=None, student_uid=student_uid, student_name=student_name, internal_marks=internal_marks)
+
 
 # ==================== MAIN ====================
 if __name__ == "__main__":
     # Use Gunicorn or Waitress for production instead of Flask development server
-    port = int(os.environ.get("PORT", 5000)) # Default to 5000 if PORT not set
+    port = int(os.environ.get("PORT", 5000))  # Default to 5000 if PORT not set
     # For development: debug=True, use_reloader=True
     # For production: debug=False, use_reloader=False, threaded=True (or use WSGI server)
-    app.run(host='0.0.0.0', port=port, debug=True) # Debug=True for development ONLY
+    app.run(host='0.0.0.0', port=port, debug=True)
+

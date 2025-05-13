@@ -2,363 +2,632 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Tutor Dashboard</title>
+    <title>Tutor Dashboard | EduTrack</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script> <style>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-light: #3f37c9;
+            --secondary: #3a0ca3;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --info: #4895ef;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --white: #ffffff;
+            --gray: #6c757d;
+            --gray-light: #e9ecef;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern font */
-            background-color: #f8f9fa; /* Lighter grey */
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f7ff;
             margin: 0;
-            padding: 20px; /* Add padding around the body */
-            color: #343a40; /* Default text color */
+            padding: 0;
+            color: var(--dark);
         }
 
-        h2 {
-            text-align: center;
-            color: #495057; /* Slightly darker heading */
-            margin-top: 20px;
-            margin-bottom: 10px; /* Space below heading */
-        }
-
-        .container {
-            max-width: 1200px;
+        .dashboard-container {
+            max-width: 1400px;
             margin: 20px auto;
-            padding: 30px; /* More padding */
-            background-color: #fff;
-            border-radius: 10px; /* Smoother radius */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+            padding: 20px;
+        }
+
+        /* Header Styles */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .dashboard-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dashboard-title i {
+            font-size: 1.5rem;
+            color: var(--primary);
         }
 
         .header-actions {
             display: flex;
-            justify-content: space-between; /* Space out buttons */
-            align-items: center;
-            margin-bottom: 25px;
-            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            gap: 15px;
         }
 
-        /* Style for the new button */
-        .action-button a, .logout-button a {
-            padding: 10px 20px; /* Consistent padding */
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.95rem; /* Slightly smaller font */
-            text-decoration: none;
-            transition: background-color 0.3s ease, box-shadow 0.3s ease;
-            display: inline-block; /* Ensure proper spacing */
-            text-align: center;
-            margin: 5px; /* Add margin for spacing when wrapped */
-        }
-
-        .action-button a {
-             background-color: #007bff; /* Primary blue */
-        }
-         .action-button a:hover {
-             background-color: #0056b3; /* Darker blue */
-             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-         }
-
-        .logout-button a {
-             background-color: #dc3545; /* Red for logout */
-        }
-        .logout-button a:hover {
-             background-color: #c82333; /* Darker red */
-             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-
-        .summary-cards {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-around; /* Even spacing */
-            gap: 20px; /* Gap between cards */
-            margin-bottom: 30px; /* More space below cards */
-        }
-
-        .card {
-            background-color: #eef1f5; /* Lighter card background */
-            padding: 20px;
+        .btn {
+            padding: 10px 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            flex: 1 1 200px; /* Flex grow, shrink, basis */
-            min-width: 180px; /* Minimum width */
-            text-align: center;
-            border: 1px solid #dee2e6; /* Light border */
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .card:hover {
-            transform: translateY(-3px); /* Slight lift on hover */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
-        .card h3 {
-            color: #007bff; /* Blue heading */
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-size: 1.1rem;
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: var(--white);
         }
-        .card p {
-            font-size: 1.5rem; /* Larger number */
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #d91a6a);
+            color: var(--white);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(247, 37, 133, 0.3);
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+        }
+
+        .summary-card:nth-child(1)::before { background: var(--primary); }
+        .summary-card:nth-child(2)::before { background: var(--success); }
+        .summary-card:nth-child(3)::before { background: var(--danger); }
+        .summary-card:nth-child(4)::before { background: var(--warning); }
+
+        .summary-card i {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            opacity: 0.8;
+        }
+
+        .summary-card:nth-child(1) i { color: var(--primary); }
+        .summary-card:nth-child(2) i { color: var(--success); }
+        .summary-card:nth-child(3) i { color: var(--danger); }
+        .summary-card:nth-child(4) i { color: var(--warning); }
+
+        .summary-card h3 {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--gray);
+            margin: 0 0 10px 0;
+        }
+
+        .summary-card p {
+            font-size: 1.8rem;
             font-weight: 600;
-            color: #495057;
-            margin-bottom: 0;
+            margin: 0;
+            color: var(--dark);
         }
 
-        .charts-container {
+        /* Charts Section */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .chart-container {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .chart-header {
             display: flex;
-            flex-wrap: wrap;
-            gap: 20px; /* Gap between charts */
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chart-btn {
+            background: var(--light);
+            color: var(--gray);
+            border: none;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chart-btn:hover {
+            background: var(--gray-light);
         }
 
         .chart-wrapper {
-            background-color: #fff;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.07);
-            flex: 1 1 calc(50% - 10px); /* Adjust basis considering gap */
-            min-width: 280px; /* Minimum width for charts */
-            /* Removed fixed height to allow content to define height */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .chart-wrapper h3 {
-            color: #495057;
-            margin-top: 0;
-            margin-bottom: 20px;
-            text-align: center;
-            font-size: 1.2rem;
-        }
-
-        .chart-canvas-container {
-             position: relative;
-             width: 100%;
-             /* Max height can be useful, adjust as needed */
-             max-height: 350px;
-        }
-
-        /* Make canvas responsive within its container */
-        .chart-canvas {
-            display: block; /* Removes extra space below canvas */
+            position: relative;
+            height: 300px;
             width: 100%;
-            height: auto; /* Let aspect ratio determine height */
-            max-height: 350px; /* Match container max-height */
         }
 
-        /* Responsive adjustments */
-        @media (max-width: 992px) {
-             .card {
-                 flex-basis: calc(50% - 10px); /* Two cards per row */
-             }
+        /* Student Table */
+        .students-section {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
-        @media (max-width: 768px){
-            .chart-wrapper{
-                flex-basis: 100%; /* Full width on smaller screens */
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .students-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .students-table th {
+            background-color: #f8f9ff;
+            color: var(--secondary);
+            font-weight: 600;
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 2px solid var(--gray-light);
+        }
+
+        .students-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--gray-light);
+            vertical-align: middle;
+        }
+
+        .students-table tr:hover {
+            background-color: #f8f9ff;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-pass {
+            background-color: rgba(76, 201, 240, 0.1);
+            color: var(--success);
+        }
+
+        .status-fail {
+            background-color: rgba(247, 37, 133, 0.1);
+            color: var(--danger);
+        }
+
+        .action-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .action-link:hover {
+            color: var(--primary-light);
+            text-decoration: underline;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray);
+            font-size: 1.1rem;
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 1200px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
             }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
             .header-actions {
-                flex-direction: column; /* Stack buttons vertically */
-                align-items: stretch; /* Make buttons full width */
+                width: 100%;
+                flex-direction: column;
+                gap: 10px;
             }
-             .action-button a, .logout-button a {
-                 width: 100%; /* Full width buttons */
-                 box-sizing: border-box; /* Include padding in width */
-             }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
         }
-         @media (max-width: 576px) {
-             .card {
-                 flex-basis: 100%; /* One card per row */
-             }
-             body {
-                 padding: 10px; /* Less padding on very small screens */
-             }
-             .container {
-                 padding: 20px;
-             }
-         }
+
+        @media (max-width: 576px) {
+            .dashboard-container {
+                padding: 15px;
+            }
+            
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-container, .students-section {
+                padding: 15px;
+            }
+            
+            .students-table th, .students-table td {
+                padding: 8px 10px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header-actions">
-            <div class="action-button">
-                <a href="{{ url_for('tutor_student_view') }}">View Student Details</a>
-            </div>
-            <div class="logout-button">
-                <a href="{{ url_for('logout') }}">Logout</a>
+    <div class="dashboard-container">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">
+                <i class="fas fa-chart-line"></i> Tutor Dashboard Overview
+            </h1>
+            <div class="header-actions">
+                <a href="{{ url_for('tutor_student_view') }}" class="btn btn-primary">
+                    <i class="fas fa-user-graduate"></i> View Students
+                </a>
+                <a href="{{ url_for('logout') }}" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
             </div>
         </div>
 
-        <h2>Tutor Dashboard - Statistics</h2>
-
-        <div class="summary-cards">
-            <div class="card">
+        <!-- Summary Cards -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <i class="fas fa-users"></i>
                 <h3>Total Students</h3>
-                <p id="total-students">{{ total_students | default(0) }}</p>
+                <p id="total-students">{{ total_students if total_students is defined else 0 }}</p>
             </div>
-            <div class="card">
+            <div class="summary-card">
+                <i class="fas fa-check-circle"></i>
                 <h3>Passed Students</h3>
-                <p id="passed-students">{{ passed_students | default(0) }}</p>
+                <p id="passed-students">{{ passed_students if passed_students is defined else 0 }}</p>
             </div>
-            <div class="card">
+            <div class="summary-card">
+                <i class="fas fa-exclamation-circle"></i>
                 <h3>Failed Students</h3>
-                <p id="failed-students">{{ failed_students | default(0) }}</p>
+                <p id="failed-students">{{ failed_students if failed_students is defined else 0 }}</p>
             </div>
-            <div class="card">
+            <div class="summary-card">
+                <i class="fas fa-percentage"></i>
                 <h3>Pass Percentage</h3>
-                <p id="pass-percentage">{{ pass_percentage | round(1) | default(0) }}%</p>
+                <p id="pass-percentage">
+                    {% if pass_percentage is defined %}
+                        {{ pass_percentage|round(1) }}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </p>
             </div>
         </div>
 
-        <div class="charts-container">
-            <div class="chart-wrapper">
-                <h3>Student Performance Overview</h3>
-                <div class="chart-canvas-container">
-                  <canvas id="performance-chart" class="chart-canvas"></canvas>
+        <!-- Charts Section -->
+        <div class="charts-grid">
+            <!-- Performance Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">
+                        <i class="fas fa-chart-pie"></i> Student Performance Distribution
+                    </h3>
+                    <div class="chart-actions">
+                        <button class="chart-btn"><i class="fas fa-download"></i></button>
+                        <button class="chart-btn"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    {% if passed_students is defined and failed_students is defined and (passed_students > 0 or failed_students > 0) %}
+                        <canvas id="performance-chart"></canvas>
+                    {% else %}
+                        <div class="no-data">No performance data available</div>
+                    {% endif %}
                 </div>
             </div>
-            <div class="chart-wrapper">
-                <h3>Subject Average Scores</h3>
-                 <div class="chart-canvas-container">
-                   <canvas id="subject-average-chart" class="chart-canvas"></canvas>
-                 </div>
+
+            <!-- Subject Averages Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">
+                        <i class="fas fa-book-open"></i> Average Subject Scores
+                    </h3>
+                    <div class="chart-actions">
+                        <button class="chart-btn"><i class="fas fa-download"></i></button>
+                        <button class="chart-btn"><i class="fas fa-expand"></i></button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    {% if avg_subjects is defined and avg_subjects|length > 0 %}
+                        <canvas id="subject-average-chart"></canvas>
+                    {% else %}
+                        <div class="no-data">No subject data available</div>
+                    {% endif %}
+                </div>
             </div>
+        </div>
+
+        <!-- Students Table Section -->
+        <div class="students-section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-list-ul"></i> Student Records
+                </h3>
+                <div>
+                    <span class="action-link">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </span>
+                </div>
+            </div>
+
+            {% if students is defined and students|length > 0 %}
+                <div class="table-responsive">
+                    <table class="students-table">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Semester</th>
+                                <th>Average</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                                <tr>
+                                    <td>{{ student.uid }}</td>
+                                    <td>{{ student.name }}</td>
+                                    <td>{{ student.email }}</td>
+                                    <td>
+                                        {% if student.marks_history %}
+                                            {{ student.marks_history[-1].semester }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if student.marks_history %}
+                                            {{ student.marks_history[-1].average|round(1) }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if student.marks_history %}
+                                            <span class="status-badge {% if student.marks_history[-1].pass_status == 'Pass' %}status-pass{% else %}status-fail{% endif %}">
+                                                {{ student.marks_history[-1].pass_status }}
+                                            </span>
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('tutor_student_view', student_id=student.uid) }}" class="action-link">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="no-data">No student data available</div>
+            {% endif %}
         </div>
     </div>
 
+    <!-- Chart Scripts -->
     <script>
-        // Data passed from Flask template
-        const passedCount = JSON.parse('{{ passed_students | default(0) | tojson | safe }}');
-        const failedCount = JSON.parse('{{ failed_students | default(0) | tojson | safe }}');
-        // Ensure avg_subjects is a valid JSON object or an empty object
-        const averageSubjects = JSON.parse('{{ avg_subjects | tojson | safe }}' || '{}');
-
-        // Prepare data for Subject Average Chart
-        const subjectNames = Object.keys(averageSubjects);
-        const subjectAverages = Object.values(averageSubjects);
-
-        // Chart Colors (example using Chart.js defaults or custom)
-        const chartColors = {
-            pass: 'rgba(75, 192, 192, 0.6)', // Teal/Green
-            fail: 'rgba(255, 99, 132, 0.6)', // Red
-            subjects: 'rgba(54, 162, 235, 0.6)', // Blue
-            passBorder: 'rgba(75, 192, 192, 1)',
-            failBorder: 'rgba(255, 99, 132, 1)',
-            subjectsBorder: 'rgba(54, 162, 235, 1)'
-        };
-
-        // --- Performance Pie Chart ---
+        // Performance Chart
         const performanceCtx = document.getElementById('performance-chart')?.getContext('2d');
-        if (performanceCtx && (passedCount > 0 || failedCount > 0)) { // Only render if data exists
-            const performanceChart = new Chart(performanceCtx, {
-                type: 'pie',
-                data: {
-                    labels: ['Passed', 'Failed'],
-                    datasets: [{
-                        label: 'Student Performance',
-                        data: [passedCount, failedCount],
-                        backgroundColor: [chartColors.pass, chartColors.fail],
-                        borderColor: [chartColors.passBorder, chartColors.failBorder],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false, // Allow chart to fill container height better
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed !== null) {
-                                        label += context.parsed + ' Students';
-                                    }
-                                    return label;
-                                }
-                            }
-                        },
-                        title: { // Optional: Add a title within the chart area
-                            display: false, // Set to true to show
-                            text: 'Pass/Fail Distribution'
-                        }
-                    }
-                }
-            });
-        } else if (performanceCtx) {
-             performanceCtx.font = "16px Arial";
-             performanceCtx.fillStyle = "#888";
-             performanceCtx.textAlign = "center";
-             performanceCtx.fillText("No performance data available", performanceCtx.canvas.width / 2, performanceCtx.canvas.height / 2);
-        }
-
-
-        // --- Subject Average Bar Chart ---
-        const subjectAvgCtx = document.getElementById('subject-average-chart')?.getContext('2d');
-        if (subjectAvgCtx && subjectNames.length > 0) { // Only render if data exists
-            const subjectAverageChart = new Chart(subjectAvgCtx, {
-                type: 'bar',
-                data: {
-                    labels: subjectNames,
-                    datasets: [{
-                        label: 'Average Score',
-                        data: subjectAverages,
-                        backgroundColor: chartColors.subjects,
-                        borderColor: chartColors.subjectsBorder,
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            suggestedMax: 100 // Suggest 100 as max score
-                        }
+        if (performanceCtx) {
+            const passedCount = parseInt('{{ passed_students if passed_students is defined else 0 }}');
+            const failedCount = parseInt('{{ failed_students if failed_students is defined else 0 }}');
+            
+            if (passedCount > 0 || failedCount > 0) {
+                new Chart(performanceCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Passed', 'Failed'],
+                        datasets: [{
+                            data: [passedCount, failedCount],
+                            backgroundColor: ['rgba(76, 201, 240, 0.8)', 'rgba(247, 37, 133, 0.8)'],
+                            borderColor: ['rgba(76, 201, 240, 1)', 'rgba(247, 37, 133, 1)'],
+                            borderWidth: 1
+                        }]
                     },
-                    plugins: {
-                        legend: {
-                            display: true, // Show legend for bar chart
-                            position: 'top',
-                        },
-                        tooltip: {
-                             callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: { 
+                                position: 'right',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => `${ctx.label}: ${ctx.parsed} Students (${((ctx.parsed/(passedCount+failedCount))*100).toFixed(1)}%)`
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Subject Average Chart
+        const subjectAvgCtx = document.getElementById('subject-average-chart')?.getContext('2d');
+        if (subjectAvgCtx) {
+            const avgSubjects = JSON.parse('{{ avg_subjects|tojson|safe if avg_subjects is defined else "{}" }}');
+            const subjectNames = Object.keys(avgSubjects).map(sub => sub.charAt(0).toUpperCase() + sub.slice(1));
+            const subjectAverages = Object.values(avgSubjects);
+            
+            if (subjectNames.length > 0) {
+                new Chart(subjectAvgCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: subjectNames,
+                        datasets: [{
+                            label: 'Average Score',
+                            data: subjectAverages,
+                            backgroundColor: 'rgba(67, 97, 238, 0.7)',
+                            borderColor: 'rgba(67, 97, 238, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                grid: {
+                                    drawBorder: false,
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
                                     }
-                                    if (context.parsed.y !== null) {
-                                        // Format to 1 decimal place
-                                        label += context.parsed.y.toFixed(1);
-                                    }
-                                    return label;
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false,
+                                    drawBorder: false
                                 }
                             }
                         },
-                         title: {
-                            display: false,
-                            text: 'Average Scores by Subject'
+                        plugins: {
+                            legend: { 
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => `Average Score: ${ctx.parsed.y.toFixed(1)}%`
+                                }
+                            }
                         }
                     }
-                }
-            });
-        } else if (subjectAvgCtx) {
-             subjectAvgCtx.font = "16px Arial";
-             subjectAvgCtx.fillStyle = "#888";
-             subjectAvgCtx.textAlign = "center";
-             subjectAvgCtx.fillText("No subject average data available", subjectAvgCtx.canvas.width / 2, subjectAvgCtx.canvas.height / 2);
+                });
+            }
         }
-
     </script>
 </body>
 </html>

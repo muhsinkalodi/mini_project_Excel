@@ -1,149 +1,568 @@
-<!-- student_dashboard.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Student Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Performance Dashboard | EduPredict</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .gradient-text {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.1);
+        }
+        .status-pass {
+            color: #10b981;
+            background-color: #ecfdf5;
+        }
+        .status-fail {
+            color: #ef4444;
+            background-color: #fef2f2;
+        }
+        .status-pending {
+            color: #f59e0b;
+            background-color: #fffbeb;
+        }
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+    </style>
 </head>
-<body class="bg-white text-dark">
-<div class="container mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Welcome, {{ user.name }}</h2>
-        <div>
-            <a href="/home" class="btn btn-success me-2">Go to Prediction</a>
-            <a href="/logout" class="btn btn-danger">Logout</a>
-        </div>
-    </div>
-
-    <p><strong>Email:</strong> {{ user.email }}</p>
-    <p><strong>Gender:</strong> {{ user.gender }}</p>
-
-    {% if history %}
-        {% set latest = history[-1] %}
-        <div class="card bg-light p-3 mb-4">
-            <h4>Latest Prediction Summary</h4>
-            <p><strong>Math (Predicted):</strong> {{ latest.predicted_math_score }}</p>
-            <p><strong>Reading:</strong> {{ latest.reading_score }}</p>
-            <p><strong>Writing:</strong> {{ latest.writing_score }}</p>
-            <p><strong>Physics:</strong> {{ latest.physics_score }}</p>
-            <p><strong>Chemistry:</strong> {{ latest.chemistry_score }}</p>
-            <p><strong>Computer Science:</strong> {{ latest.cs_score }}</p>
-            <p><strong>Average:</strong> {{ latest.average }}</p>
-            <p><strong>Percentage:</strong> {{ latest.percentage }}%</p>
-            <p><strong>Status:</strong> {{ latest.pass_status }}</p>
-        </div>
-
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <canvas id="pieChart" height="250"></canvas>
-            </div>
-            <div class="col-md-6">
-                <canvas id="barChart" height="250"></canvas>
+<body class="font-sans bg-gray-50 text-gray-800">
+<div class="min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    <div>
+                        <h1 class="text-2xl font-bold">EduPredict Dashboard</h1>
+                        <p class="text-blue-200">Track your academic progress with AI insights</p>
+                    </div>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="/home" class="px-5 py-2.5 bg-white text-blue-700 font-medium rounded-lg hover:bg-gray-100 transition-colors flex items-center shadow-sm hover:shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" />
+                        </svg>
+                        New Prediction
+                    </a>
+                    <a href="/logout" class="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors flex items-center shadow-sm hover:shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd" />
+                        </svg>
+                        Logout
+                    </a>
+                </div>
             </div>
         </div>
+    </header>
 
-        <form action="/download_report" method="post">
-            <input type="hidden" name="uid" value="{{ user.uid }}">
-            <button type="submit" class="btn btn-primary mb-4">Download PDF Report</button>
-        </form>
-        
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Welcome Section -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8 card-hover">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-1">Welcome back, <span class="gradient-text">{{ user.name }}</span>!</h2>
+                    <p class="text-gray-600">Here's your personalized academic performance overview</p>
+                </div>
+                <div class="flex flex-wrap gap-4">
+                    <div class="bg-blue-50 rounded-lg px-4 py-3 min-w-[180px]">
+                        <p class="text-sm text-blue-600 font-medium">Email</p>
+                        <p class="font-medium text-gray-800">{{ user.email }}</p>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg px-4 py-3 min-w-[180px]">
+                        <p class="text-sm text-purple-600 font-medium">Gender</p>
+                        <p class="font-medium text-gray-800 capitalize">{{ user.gender }}</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg px-4 py-3 min-w-[180px]">
+                        <p class="text-sm text-green-600 font-medium">Predictions</p>
+                        <p class="font-medium text-gray-800">{{ history|length if history else 0 }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        <h4 class="mt-5">Performance History</h4>
-        <table class="table table-bordered table-striped">
-            <thead class="table-light">
-            <tr>
-                <th>#</th>
-                <th>Math</th>
-                <th>Reading</th>
-                <th>Writing</th>
-                <th>Physics</th>
-                <th>Chemistry</th>
-                <th>CS</th>
-                <th>Average</th>
-                <th>Percentage</th>
-                <th>Status</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for mark in history %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-                    <td>{{ mark.predicted_math_score }}</td>
-                    <td>{{ mark.reading_score }}</td>
-                    <td>{{ mark.writing_score }}</td>
-                    <td>{{ mark.physics_score }}</td>
-                    <td>{{ mark.chemistry_score }}</td>
-                    <td>{{ mark.cs_score }}</td>
-                    <td>{{ mark.average }}</td>
-                    <td>{{ mark.percentage }}%</td>
-                    <td>{{ mark.pass_status }}</td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+        {% if history %}
+            {% set latest = history[-1] %}
+            {% set subjects = {
+                'math': latest.math_predicted,
+                'physics': latest.physics_predicted,
+                'chemistry': latest.chemistry_predicted,
+                'cs': latest.cs_predicted,
+                'english': latest.english_predicted,
+                'aptitude': latest.aptitude_predicted
+            } %}
+            
+            <!-- Performance Overview -->
+            <section class="mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">
+                        <span class="gradient-text">Semester {{ latest.semester }}</span> Performance
+                    </h3>
+                    <span class="px-4 py-2 rounded-full text-sm font-medium {{ 'status-pass' if latest.pass_status == 'Pass' else 'status-fail' if latest.pass_status == 'Fail' else 'status-pending' }}">
+                        {{ latest.pass_status }} Status
+                    </span>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Overall Performance Card -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                </svg>
+                            </div>
+                            <h4 class="font-semibold text-lg">Overall Performance</h4>
+                        </div>
+                        <div class="space-y-6">
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-600">Average Score</span>
+                                    <span class="text-lg font-bold">{{ latest.average|round(1) if latest.average is not none else 'N/A' }}</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full progress-bar">
+                                    <div class="bg-blue-600 h-full rounded-full" style="width: {{ latest.average if latest.average is not none else 0 }}%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-600">Percentage</span>
+                                    <span class="text-lg font-bold">{{ latest.percentage|round(1) if latest.percentage is not none else 'N/A' }}%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full progress-bar">
+                                    <div class="bg-green-500 h-full rounded-full" style="width: {{ latest.percentage if latest.percentage is not none else 0 }}%"></div>
+                                </div>
+                            </div>
+                            <div class="pt-4 border-t border-gray-100">
+                                <div class="flex justify-between">
+                                    <span class="text-sm font-medium text-gray-600">Prediction Date</span>
+                                    <span class="text-sm font-medium">{{ latest.timestamp.strftime('%d %b %Y') if latest.timestamp else 'N/A' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Subject Performance Card -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-purple-100 p-2 rounded-lg mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                </svg>
+                            </div>
+                            <h4 class="font-semibold text-lg">Subject Performance</h4>
+                        </div>
+                        <div class="space-y-4">
+                            {% for subject in ['math', 'physics', 'chemistry', 'cs', 'english', 'aptitude'] %}
+                                {% set predicted = latest[subject ~ '_predicted'] %}
+                                {% if predicted is not none and predicted != 0 %}
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm font-medium text-gray-600 capitalize">{{ subject }}</span>
+                                        <span class="text-sm font-bold">{{ predicted }}%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full progress-bar">
+                                        <div class="h-full rounded-full 
+                                            {% if predicted >= 75 %}bg-green-500
+                                            {% elif predicted >= 50 %}bg-blue-500
+                                            {% else %}bg-red-500{% endif %}" 
+                                            style="width: {{ predicted }}%">
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Performance Insights Card -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-green-100 p-2 rounded-lg mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                            </div>
+                            <h4 class="font-semibold text-lg">Performance Insights</h4>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-blue-50 rounded-lg">
+                                <div class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mt-0.5 mr-2 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                    </svg>
+                                    <div>
+                                        <p class="font-medium text-blue-800">Top Performing Subject</p>
+                                        <p class="text-sm text-blue-600">
+                                            {% set top_subject = subjects.items() | sort(attribute='1', reverse=True) | first %}
+                                            {{ top_subject[0]|capitalize }} ({{ top_subject[1] }}%)
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-4 bg-purple-50 rounded-lg">
+                                <div class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mt-0.5 mr-2 text-purple-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                    </svg>
+                                    <div>
+                                        <p class="font-medium text-purple-800">Needs Improvement</p>
+                                        <p class="text-sm text-purple-600">
+                                            {% set weak_subject = subjects.items() | sort(attribute='1') | first %}
+                                            {{ weak_subject[0]|capitalize }} ({{ weak_subject[1] }}%)
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-4 bg-yellow-50 rounded-lg">
+                                <div class="flex items-start">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mt-0.5 mr-2 text-yellow-600" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                    </svg>
+                                    <div>
+                                        <p class="font-medium text-yellow-800">Recommendation</p>
+                                        <p class="text-sm text-yellow-600">
+                                            {% if latest.average >= 75 %}
+                                                Maintain your excellent performance!
+                                            {% elif latest.average >= 50 %}
+                                                Focus on your weaker subjects to improve
+                                            {% else %}
+                                                Consider additional study sessions
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-        <script>
-            const latestData = JSON.parse('{{ latest | tojson | safe }}');
+            <!-- Charts Section -->
+            <section class="mb-8">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">
+                    <span class="gradient-text">Performance</span> Visualization
+                </h3>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Subject Distribution Chart -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-pink-100 p-2 rounded-lg mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                                </svg>
+                            </div>
+                            <h4 class="font-semibold text-lg">Subject Distribution</h4>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="pieChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Performance Comparison Chart -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 card-hover">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-indigo-100 p-2 rounded-lg mr-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                </svg>
+                            </div>
+                            <h4 class="font-semibold text-lg">Predicted vs Internal Marks</h4>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="barChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Performance History -->
+            <section class="mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-2xl font-bold text-gray-800">
+                        <span class="gradient-text">Performance</span> History
+                    </h3>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-500">Last updated: {{ latest.timestamp.strftime('%d %b %Y') if latest.timestamp else 'N/A' }}</span>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden card-hover">
+                    <div class="p-6 border-b">
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <h4 class="font-semibold text-lg">Predicted Marks History</h4>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Math</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Physics</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chemistry</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CS</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">English</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aptitude</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for mark in history|reverse %}
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Sem {{ mark.semester }}</td>
+                                    {% for subject in ['math', 'physics', 'chemistry', 'cs', 'english', 'aptitude'] %}
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            <div class="flex items-center">
+                                                <div class="w-2 h-2 rounded-full mr-2 
+                                                    {% if mark[subject ~ '_predicted'] >= 75 %}bg-green-500
+                                                    {% elif mark[subject ~ '_predicted'] >= 50 %}bg-blue-500
+                                                    {% else %}bg-red-500{% endif %}">
+                                                </div>
+                                                {{ mark[subject ~ '_predicted'] if mark[subject ~ '_predicted'] is not none and mark[subject ~ '_predicted'] != 0 else 'N/A' }}
+                                            </div>
+                                        </td>
+                                    {% endfor %}
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold">
+                                        {{ mark.average|round(1) if mark.average is not none else 'N/A' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-3 py-1 text-xs rounded-full font-medium {{ 'status-pass' if mark.pass_status == 'Pass' else 'status-fail' if mark.pass_status == 'Fail' else 'status-pending' }}">
+                                            {{ mark.pass_status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
 
-            const pieCtx = document.getElementById('pieChart');
-            new Chart(pieCtx, {
-                type: 'pie',
-                data: {
-                    labels: ['Math', 'Reading', 'Writing', 'Physics', 'Chemistry', 'CS'],
-                    datasets: [{
-                        label: 'Subject Scores',
-                        data: [
-                            latestData.predicted_math_score,
-                            latestData.reading_score,
-                            latestData.writing_score,
-                            latestData.physics_score,
-                            latestData.chemistry_score,
-                            latestData.cs_score
-                        ],
-                        backgroundColor: [
-                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true
-                }
-            });
-
-            const barCtx = document.getElementById('barChart');
-            new Chart(barCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Math', 'Reading', 'Writing', 'Physics', 'Chemistry', 'CS'],
-                    datasets: [{
-                        label: 'Latest Scores',
-                        data: [
-                            latestData.predicted_math_score,
-                            latestData.reading_score,
-                            latestData.writing_score,
-                            latestData.physics_score,
-                            latestData.chemistry_score,
-                            latestData.cs_score
-                        ],
-                        backgroundColor: '#36A2EB'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100
+            <!-- Download Report -->
+            <section class="mb-8">
+                <div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl shadow-lg p-8 flex flex-col md:flex-row justify-between items-center card-hover">
+                    <div class="mb-6 md:mb-0 text-center md:text-left">
+                        <h3 class="text-xl font-bold text-white mb-2">Download Full Performance Report</h3>
+                        <p class="text-blue-100">Get a detailed PDF report of your academic performance with personalized recommendations</p>
+                    </div>
+                    <form action="/download_report" method="post">
+                        <input type="hidden" name="uid" value="{{ user.uid }}">
+                        <button type="submit" class="px-8 py-3 bg-white hover:bg-gray-100 text-blue-700 font-bold rounded-lg transition-colors flex items-center shadow-lg hover:shadow-xl transform hover:scale-105">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            Download PDF Report
+                        </button>
+                    </form>
+                </div>
+            </section>
+            
+            <script>
+                const latestData = JSON.parse('{{ latest | tojson | safe }}');
+                
+                // Pie Chart
+                if (document.getElementById('pieChart')) {
+                    new Chart(document.getElementById('pieChart'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Math', 'Physics', 'Chemistry', 'CS', 'English', 'Aptitude'],
+                            datasets: [{
+                                data: [
+                                    latestData.math_predicted || 0,
+                                    latestData.physics_predicted || 0,
+                                    latestData.chemistry_predicted || 0,
+                                    latestData.cs_predicted || 0,
+                                    latestData.english_predicted || 0,
+                                    latestData.aptitude_predicted || 0
+                                ],
+                                backgroundColor: [
+                                    '#f87171', '#60a5fa', '#facc15',
+                                    '#34d399', '#c084fc', '#f97316'
+                                ],
+                                borderWidth: 0,
+                                hoverOffset: 10
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { 
+                                    position: 'right',
+                                    labels: {
+                                        usePointStyle: true,
+                                        padding: 20
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `${context.label}: ${context.raw}%`;
+                                        }
+                                    },
+                                    displayColors: false
+                                }
+                            },
+                            cutout: '70%'
                         }
-                    }
+                    });
                 }
-            });
-        </script>
-    {% else %}
-        <p>No prediction history available yet.</p>
-    {% endif %}
+
+                // Bar Chart
+                if (document.getElementById('barChart')) {
+                    // Calculate internal marks averages
+                    const internalAverages = {};
+                    ['math', 'physics', 'chemistry', 'cs', 'english', 'aptitude'].forEach(subject => {
+                        const i1 = latestData[`${subject}_internal1`] || 0;
+                        const i2 = latestData[`${subject}_internal2`] || 0;
+                        const i3 = latestData[`${subject}_internal3`] || 0;
+                        internalAverages[subject] = (i1 + i2 + i3) / 3;
+                    });
+
+                    new Chart(document.getElementById('barChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: ['Math', 'Physics', 'Chemistry', 'CS', 'English', 'Aptitude'],
+                            datasets: [
+                                {
+                                    label: 'Predicted Marks',
+                                    backgroundColor: '#3b82f6',
+                                    data: [
+                                        latestData.math_predicted || 0,
+                                        latestData.physics_predicted || 0,
+                                        latestData.chemistry_predicted || 0,
+                                        latestData.cs_predicted || 0,
+                                        latestData.english_predicted || 0,
+                                        latestData.aptitude_predicted || 0
+                                    ],
+                                    borderRadius: 6,
+                                    barThickness: 24
+                                },
+                                {
+                                    label: 'Internal Marks (Avg)',
+                                    backgroundColor: '#8b5cf6',
+                                    data: [
+                                        internalAverages.math,
+                                        internalAverages.physics,
+                                        internalAverages.chemistry,
+                                        internalAverages.cs,
+                                        internalAverages.english,
+                                        internalAverages.aptitude
+                                    ],
+                                    borderRadius: 6,
+                                    barThickness: 24
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: { 
+                                    beginAtZero: true, 
+                                    max: 100, 
+                                    grid: { 
+                                        drawBorder: false,
+                                        color: 'rgba(0, 0, 0, 0.05)'
+                                    },
+                                    ticks: {
+                                        callback: function(value) {
+                                            return value + '%';
+                                        }
+                                    }
+                                },
+                                x: { 
+                                    grid: { 
+                                        display: false,
+                                        drawBorder: false
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: { 
+                                    position: 'top',
+                                    labels: {
+                                        usePointStyle: true,
+                                        padding: 20
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `${context.dataset.label}: ${context.raw}%`;
+                                        }
+                                    },
+                                    displayColors: false
+                                }
+                            },
+                            interaction: {
+                                mode: 'index',
+                                intersect: false
+                            }
+                        }
+                    });
+                }
+            </script>
+        {% else %}
+            <!-- Empty State -->
+            <div class="bg-white rounded-xl shadow-lg p-12 text-center">
+                <div class="max-w-md mx-auto">
+                    <div class="animate-float mx-auto w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-2">No prediction history yet</h3>
+                    <p class="text-gray-600 mb-6">Make your first prediction to unlock personalized performance insights and analytics.</p>
+                    <a href="/home" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Make Your First Prediction
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </main>
 </div>
 </body>
 </html>

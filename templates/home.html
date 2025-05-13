@@ -3,263 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <title>Student Exam Performance Predictor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(to right, #6a11cb, #2575fc);
-            margin: 0;
-            padding: 2rem;
-            color: #333;
-        }
-
-        .container {
-            background-color: #ffffff;
-            padding: 2.5rem;
-            border-radius: 15px;
-            max-width: 700px;
-            margin: auto;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            animation: fadeIn 0.8s ease-in-out;
-        }
-
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
-        h1, h2 {
-            text-align: center;
-            color: #2c3e50;
+        .gradient-bg {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
         }
-
-        h1 {
-            margin-bottom: 2rem;
-            font-size: 2rem;
+        .card-hover {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
-
-        .form-group {
-            margin-bottom: 1.2rem;
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.1);
         }
-
-        label {
+        .status-pass {
+            color: #10b981;
+            background-color: #ecfdf5;
+        }
+        .status-fail {
+            color: #ef4444;
+            background-color: #fef2f2;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
             display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: #2c3e50;
+            animation: fadeIn 0.5s ease-out;
         }
-
-        select, input[type=number], input[type=submit] {
-            width: 100%;
-            padding: 0.6rem;
-            font-size: 1rem;
-            border-radius: 8px;
-            border: 1px solid #ccc;
+        .tab-button {
             transition: all 0.3s ease;
         }
-
-        select:focus, input:focus {
-            outline: none;
-            border-color: #2575fc;
-            box-shadow: 0 0 8px rgba(37, 117, 252, 0.2);
-        }
-
-        input[type=submit] {
-            background-color: #2575fc;
+        .tab-button.active {
+            background-color: #3b82f6;
             color: white;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 1rem;
-            transition: background-color 0.3s ease;
-        }
-
-        input[type=submit]:hover {
-            background-color: #1a5ed9;
-        }
-
-        .result {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            border-radius: 10px;
-            background-color: #e0f9e5;
-            border-left: 6px solid #28a745;
-            font-size: 1rem;
-        }
-
-        .fail {
-            background-color: #ffe0e0;
-            border-left: 6px solid #e74c3c;
-        }
-
-        .dashboard-btn {
-            margin-top: 30px;
-            text-align: center;
-        }
-
-        .dashboard-btn a {
-            background-color: #6a11cb;
-            color: white;
-            padding: 12px 25px;
-            font-size: 1rem;
-            text-decoration: none;
-            border-radius: 8px;
-            display: inline-block;
-            transition: background 0.3s ease;
-        }
-
-        .dashboard-btn a:hover {
-            background-color: #5211a8;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 2rem;
-            }
-            h1 {
-                font-size: 1.6rem;
-            }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>Student Exam Performance Predictor</h1>
+<body class="gradient-bg min-h-screen py-10 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Main Card -->
+        <div class="bg-white rounded-xl shadow-xl overflow-hidden card-hover animate-fade-in">
+            <!-- Header -->
+            <div class="bg-blue-600 text-white px-6 py-4">
+                <h1 class="text-2xl font-bold text-center">Student Exam Performance Predictor</h1>
+                <p class="text-center text-blue-100">Enter your internal marks to predict semester performance</p>
+            </div>
 
-        <form action="{{ url_for('predict_datappoint') }}" method="POST">
-            {% if student_uid %}
-                <input type="hidden" name="student_uid" value="{{ student_uid }}">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="px-6 pt-4">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} p-3 mb-3 rounded-lg 
+                                {% if category == 'success' %}bg-green-100 text-green-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <!-- Form Section -->
+            <div class="p-6">
+                <form action="{{ url_for('predict_datappoint') }}" method="POST">
+                    {% if student_uid %}
+                        <input type="hidden" name="student_uid" value="{{ student_uid }}">
+                    {% endif %}
+
+                    <!-- Semester Selection -->
+                    <div class="mb-8">
+                        <label for="semester" class="block text-lg font-medium text-gray-700 mb-2">Select Semester</label>
+                        <select name="semester" id="semester" required
+                            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                            <option value="">-- Select Semester --</option>
+                            {% for sem in range(1, 9) %}
+                                <option value="{{ sem }}"
+                                    {% if request.form.get('semester') == sem|string or semester == sem|string %}
+                                    selected {% endif %}>
+                                    Semester {{ sem }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Tab Navigation -->
+                    <div class="flex mb-6 bg-gray-100 rounded-lg p-1">
+                        <button type="button" class="tab-button flex-1 py-2 px-4 rounded-lg font-medium active" 
+                                onclick="openTab(event, 'internal1')">Internal 1 Marks</button>
+                        <button type="button" class="tab-button flex-1 py-2 px-4 rounded-lg font-medium"
+                                onclick="openTab(event, 'internal2')">Internal 2 Marks</button>
+                        <button type="button" class="tab-button flex-1 py-2 px-4 rounded-lg font-medium"
+                                onclick="openTab(event, 'internal3')">Internal 3 Marks</button>
+                    </div>
+
+                    <!-- Tab Contents -->
+                    <div id="internal1" class="tab-content active">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800">Internal Test 1 Marks</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {% for subject in ['Math', 'Physics', 'Chemistry', 'CS', 'English', 'Aptitude'] %}
+                                <div class="form-group">
+                                    <label for="{{ subject|lower }}_internal1" class="block text-sm font-medium text-gray-700 mb-1">
+                                        {{ subject }} (0–100)
+                                    </label>
+                                    <input type="number" id="{{ subject|lower }}_internal1" 
+                                           name="{{ subject|lower }}_internal1" min="0" max="100" required
+                                           value="{{ internal_marks.get(subject|lower ~ '_internal1', '') }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div id="internal2" class="tab-content">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800">Internal Test 2 Marks</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {% for subject in ['Math', 'Physics', 'Chemistry', 'CS', 'English', 'Aptitude'] %}
+                                <div class="form-group">
+                                    <label for="{{ subject|lower }}_internal2" class="block text-sm font-medium text-gray-700 mb-1">
+                                        {{ subject }} (0–100)
+                                    </label>
+                                    <input type="number" id="{{ subject|lower }}_internal2" 
+                                           name="{{ subject|lower }}_internal2" min="0" max="100" required
+                                           value="{{ internal_marks.get(subject|lower ~ '_internal2', '') }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div id="internal3" class="tab-content">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800">Internal Test 3 Marks</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {% for subject in ['Math', 'Physics', 'Chemistry', 'CS', 'English', 'Aptitude'] %}
+                                <div class="form-group">
+                                    <label for="{{ subject|lower }}_internal3" class="block text-sm font-medium text-gray-700 mb-1">
+                                        {{ subject }} (0–100)
+                                    </label>
+                                    <input type="number" id="{{ subject|lower }}_internal3" 
+                                           name="{{ subject|lower }}_internal3" min="0" max="100" required
+                                           value="{{ internal_marks.get(subject|lower ~ '_internal3', '') }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mt-8">
+                        <button type="submit" 
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd" />
+                            </svg>
+                            Predict Semester Marks
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Results Section -->
+            {% if results is defined and results is not none and average is defined %}
+            <div class="px-6 pb-6">
+                <div class="border-t border-gray-200 pt-6">
+                    <div class="{% if average is not none and average < 45 %}bg-red-50 border-l-4 border-red-500{% else %}bg-green-50 border-l-4 border-green-500{% endif %} p-4 rounded-r-lg">
+                        <h2 class="text-xl font-bold text-gray-800 mb-3">Prediction Results</h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {% for subject in ['math', 'physics', 'chemistry', 'cs', 'english', 'aptitude'] %}
+                            <div class="bg-white p-3 rounded-lg shadow-sm">
+                                <h3 class="font-semibold text-gray-700 mb-2">{{ subject.capitalize() }}</h3>
+                                <div class="space-y-1">
+                                    <p class="text-sm text-gray-600">
+                                        <span class="font-medium">Internals:</span> 
+                                        {{ internal_marks.get(subject ~ '_internal1', 'N/A') }}, 
+                                        {{ internal_marks.get(subject ~ '_internal2', 'N/A') }}, 
+                                        {{ internal_marks.get(subject ~ '_internal3', 'N/A') }}
+                                    </p>
+                                    <p class="text-sm text-gray-600">
+                                        <span class="font-medium">Predicted:</span> 
+                                        {{ results.get(subject ~ '_predicted') | default('N/A') }}
+                                    </p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-white p-3 rounded-lg shadow-sm">
+                                <p class="text-sm font-medium text-gray-500">Average Score</p>
+                                <p class="text-xl font-bold">{{ average | default(0) | round(2) }}</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg shadow-sm">
+                                <p class="text-sm font-medium text-gray-500">Percentage</p>
+                                <p class="text-xl font-bold">{{ percentage | default(0) | round(2) }}%</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg shadow-sm">
+                                <p class="text-sm font-medium text-gray-500">Status</p>
+                                <p class="text-xl font-bold {% if average is not none and average >= 45 %}text-green-600{% else %}text-red-600{% endif %}">
+                                    {% if average is not none and average >= 45 %}
+                                        Pass <span class="text-green-500">✓</span>
+                                    {% else %}
+                                        Fail <span class="text-red-500">✗</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             {% endif %}
 
-            <div class="form-group">
-                <label>Gender</label>
-                <select name="gender" required>
-                    <option value="" disabled selected>Select your Gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                </select>
+            <!-- Navigation Buttons -->
+            <div class="px-6 pb-6 flex justify-between">
+                <a href="{{ url_for('student_dashboard') }}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                    </svg>
+                    Back to Dashboard
+                </a>
+                
+                {% if results is defined and results is not none %}
+                <button onclick="window.print()" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a2 2 0 002 2h6a2 2 0 002-2v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a2 2 0 00-2-2H7a2 2 0 00-2 2zm8 0H7v3h6V4zm0 8H7v4h6v-4z" clip-rule="evenodd" />
+                    </svg>
+                    Print Results
+                </button>
+                {% endif %}
             </div>
-
-            <div class="form-group">
-                <label>Race or Ethnicity</label>
-                <select name="ethnicity" required>
-                    <option value="" disabled selected>Select Ethnicity</option>
-                    <option value="group A">Group A</option>
-                    <option value="group B">Group B</option>
-                    <option value="group C">Group C</option>
-                    <option value="group D">Group D</option>
-                    <option value="group E">Group E</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Parental Level of Education</label>
-                <select name="parental_level_of_education" required>
-                    <option value="" disabled selected>Select Parent Education</option>
-                    <option value="associate's degree">Associate's Degree</option>
-                    <option value="bachelor's degree">Bachelor's Degree</option>
-                    <option value="high school">High School</option>
-                    <option value="master's degree">Master's Degree</option>
-                    <option value="some college">Some College</option>
-                    <option value="some high school">Some High School</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Lunch Type</label>
-                <select name="lunch" required>
-                    <option value="" disabled selected>Select Lunch Type</option>
-                    <option value="free/reduced">Free/Reduced</option>
-                    <option value="standard">Standard</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Test Preparation Course</label>
-                <select name="test_preparation_course" required>
-                    <option value="" disabled selected>Select Course</option>
-                    <option value="none">None</option>
-                    <option value="completed">Completed</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Reading Score (0-100)</label>
-                <input type="number" name="reading_score" min="0" max="100" required>
-            </div>
-
-            <div class="form-group">
-                <label>Writing Score (0-100)</label>
-                <input type="number" name="writing_score" min="0" max="100" required>
-            </div>
-
-            <div class="form-group">
-                <label>Physics Score (0-100)</label>
-                <input type="number" name="physics_score" min="0" max="100">
-            </div>
-
-            <div class="form-group">
-                <label>Chemistry Score (0-100)</label>
-                <input type="number" name="chemistry_score" min="0" max="100">
-            </div>
-
-            <div class="form-group">
-                <label>Computer Science Score (0-100)</label>
-                <input type="number" name="cs_score" min="0" max="100">
-            </div>
-
-            <input type="submit" value="Predict Math Score">
-        </form>
-
-        {% if results is defined and average is defined %}
-            <div class="result {% if average < 45 %}fail{% endif %}">
-                <h2>Results</h2>
-                <p><strong>Predicted Math Score:</strong> {{ results }}</p>
-                <p><strong>Reading Score:</strong> {{ reading_score }}</p>
-                <p><strong>Writing Score:</strong> {{ writing_score }}</p>
-                <p><strong>Physics Score:</strong> {{ physics_score if physics_score is not none else 'N/A' }}</p>
-                <p><strong>Chemistry Score:</strong> {{ chemistry_score if chemistry_score is not none else 'N/A' }}</p>
-                <p><strong>Computer Science Score:</strong> {{ cs_score if cs_score is not none else 'N/A' }}</p>
-                <hr>
-                <p><strong>Average Score:</strong> {{ average | default(0) | round(2) }}</p>
-                <p><strong>Percentage:</strong> {{ percentage | default(0) | round(2) }}%</p>
-                <p><strong>Status:</strong>
-                    {% if average >= 45 %}
-                        Pass ✅
-                    {% else %}
-                        Fail ❌
-                    {% endif %}
-                </p>
-
-                <p><strong>Recommendation:</strong>
-                    {% if average <= 10 %}
-                        Focus on the basics. Start with foundational concepts and practice daily.
-                    {% elif average <= 20 %}
-                        Consider extra tutoring and consistent revision.
-                    {% elif average <= 30 %}
-                        You’re improving! Keep practicing mock tests.
-                    {% elif average <= 40 %}
-                        Target weak areas and solve past questions.
-                    {% elif average <= 50 %}
-                        Almost there! Brush up concepts and do revision drills.
-                    {% elif average <= 60 %}
-                        Good work. Keep solving practice sets to level up.
-                    {% elif average <= 70 %}
-                        Very good! Keep maintaining this momentum.
-                    {% elif average <= 80 %}
-                        Excellent! You’re among the top performers.
-                    {% elif average <= 90 %}
-                        Brilliant performance! Just polish for perfection.
-                    {% elif average <= 96 %}
-                        Outstanding! Keep up the high-level performance!
-                    {% else %}
-                        🔥 Perfect! You’ve mastered the subject!
-                    {% endif %}
-                </p>
-            </div>
-        {% endif %}
-
-        <div class="dashboard-btn">
-            <a href="{{ url_for('student_dashboard') }}">⬅️ Back to Dashboard</a>
         </div>
     </div>
+
+    <script>
+        // Tab functionality
+        function openTab(evt, tabName) {
+            const tabContents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove("active");
+            }
+
+            const tabButtons = document.getElementsByClassName("tab-button");
+            for (let i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].classList.remove("active");
+            }
+
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        // Form submission loading indicator
+        document.querySelector('form').addEventListener('submit', function() {
+            const submitButton = document.querySelector('button[type="submit"]');
+            submitButton.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...`;
+            submitButton.disabled = true;
+        });
+    </script>
 </body>
 </html>
