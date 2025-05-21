@@ -42,12 +42,15 @@ load_dotenv()
 try:
     if not firebase_admin._apps:
         firebase_config_json = os.environ.get("FIREBASE_CONFIG")
-        if not firebase_config_json:
-            raise ValueError("FIREBASE_CONFIG environment variable not set.")
+        if firebase_config_json:
+            firebase_config = json.loads(firebase_config_json)
+            cred = credentials.Certificate(firebase_config)
+        else:
+            # fallback for local development
+            cred = credentials.Certificate("student-performance-app-3e7d7-firebase-adminsdk-fbsvc-ab6415d037.json")
         
-        firebase_config = json.loads(firebase_config_json)
-        cred = credentials.Certificate(firebase_config)
         firebase_admin.initialize_app(cred)
+
 except Exception as e:
     print(f"Error initializing Firebase Admin SDK: {e}")
 
@@ -1498,8 +1501,6 @@ def home():
 
 
 # ==================== MAIN ====================
-f __name__ == "__main__":
-    # This block runs only in local development
-    port = int(os.environ.get("PORT", 5000))  # Render uses $PORT, default to 5000
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
-
