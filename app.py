@@ -1498,10 +1498,8 @@ def home():
 
 
 # ==================== MAIN ====================
-if __name__ == "__main__":
-    # Use Gunicorn or Waitress for production instead of Flask development server
-    port = int(os.environ.get("PORT", 5000))  # Default to 5000 if PORT not set
-    # For development: debug=True, use_reloader=True
-    # For production: debug=False, use_reloader=False, threaded=True (or use WSGI server)
+f __name__ == "__main__":
+    # This block runs only in local development
+    port = int(os.environ.get("PORT", 5000))  # Render uses $PORT, default to 5000
     app.run(host='0.0.0.0', port=port, debug=True)
 
