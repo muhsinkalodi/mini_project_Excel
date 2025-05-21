@@ -53,7 +53,7 @@ except Exception as e:
 
 
 # MongoDB setup
-mongo_uri = os.environ.get("MONGO_URI", "mongodb://localhost:27017/student_performance")  # Use env variable
+mongo_uri = "mongodb+srv://muhsinkalodi9311:4gw8TReTfRlXvDXM@student-performance.pzommxd.mongodb.net/student_performance?retryWrites=true&w=majority"
 try:
     client = MongoClient(mongo_uri)
     # The ismaster command is cheap and does not require auth.
