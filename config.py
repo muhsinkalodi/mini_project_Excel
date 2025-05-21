@@ -18,7 +18,7 @@ FIREBASE_CONFIG = {
 FIREBASE_CREDENTIALS = "student-performance-app-3e7d7-firebase-adminsdk-fbsvc-ab6415d037.json"
 
 # MongoDB Configuration
-MONGO_URI = "mongodb://localhost:27017/"  # Or use your cloud URI
+MONGO_URI = "mongodb+srv://muhsinkalodi9311:4gw8TReTfRlXvDXM@student-performance.pzommxd.mongodb.net/student_performance?retryWrites=true&w=majority&appName=student-performance"  # Or use your cloud URI
 MONGO_DB_NAME = "student_performance"
 
 load_dotenv()
@@ -26,3 +26,5 @@ JWT_SECRET = os.getenv("JWT_SECRET", "your-jwt-secret-key")
 JWT_ALGORITHM = "HS256"
 print("Secret Key:", os.getenv("SECRET_KEY"))
 print("JWT Secret:", os.getenv("JWT_SECRET"))
+
+

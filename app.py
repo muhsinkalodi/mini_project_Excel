@@ -26,6 +26,7 @@ from bson import ObjectId
 import random
 import string
 import traceback
+import json
 matplotlib.use('Agg')  # For better error logging
 
 # Initialize Flask App
@@ -37,14 +38,18 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'a_default_secret_key_for_de
 load_dotenv()
 
 # Initialize Firebase Admin SDK
+
 try:
     if not firebase_admin._apps:
-        cred = credentials.Certificate(FIREBASE_CREDENTIALS)
+        firebase_config_json = os.environ.get("FIREBASE_CONFIG")
+        if not firebase_config_json:
+            raise ValueError("FIREBASE_CONFIG environment variable not set.")
+        
+        firebase_config = json.loads(firebase_config_json)
+        cred = credentials.Certificate(firebase_config)
         firebase_admin.initialize_app(cred)
 except Exception as e:
     print(f"Error initializing Firebase Admin SDK: {e}")
-    # Depending on severity, you might want to exit or handle differently
-    # exit(1)
 
 
 # MongoDB setup
